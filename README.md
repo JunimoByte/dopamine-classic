@@ -1,43 +1,43 @@
 ![Dopamine](Dopamine.full.png)
 
-# Dopamine (for Windows)
+# Dopamine
 
-Dopamine is an audio player which tries to make organizing and listening to music as simple and pretty as possible. It is written in C# and is powered by the [CSCore sound library](https://github.com/filoe/cscore).
+**A modern continuation of Dopamine 2.0.10.**
 
-More information and downloads are available at [http://www.digimezzo.com](https://digimezzo.github.io/site/).
+Dopamine is an audio player which tries to make organizing and listening to music as simple and pretty as possible. Originally created by Digimezzo, this repository serves as a modernized continuation of the classic Dopamine 2.0.10 release, tailored specifically for stability, performance, and modern Windows ecosystems.
 
-This software uses code of <a href=http://ffmpeg.org>FFmpeg</a> licensed under the <a href=http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>LGPLv2.1</a> and its source can be downloaded <a href=https://github.com/FFmpeg/FFmpeg>here</a>.
+![Dopamine Screenshot](Dopamine.screenshot.png)
 
-[![Release](https://img.shields.io/github/release/digimezzo/Dopamine-windows.svg?style=flat-square)](https://github.com/digimezzo/Dopamine-windows/releases/latest)
-[![Issues](https://img.shields.io/github/issues/digimezzo/Dopamine-windows.svg?style=flat-square)](https://github.com/digimezzo/Dopamine-windows/issues)
-[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=MQALEWTEZ7HX8)
+## Overview of Changes
 
-<a href='https://ko-fi.com/S6S11K63U' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://az743702.vo.msecnd.net/cdn/kofi1.png?v=2' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+This version includes deep architectural fixes and a leaner codebase. Legacy support for Windows 7 and 8 has been explicitly dropped to deliver a native, highly performant experience on Windows 10 and Windows 11.
 
+### Stability & Performance Metrics
+* **Crashes & Freezes Fixed:** Resolved 20+ potential hard crashes, unmanaged memory faults, and UI hangs (including critical undocumented API crashes on Windows 11).
+* **Memory Leaks Sealed:** Completely rewrote the image caching and virtualization systems, eliminating severe RAM leaks that occurred when scrolling through massive libraries.
+* **Codebase Debloat:** Stripped out obsolete dependencies, legacy auto-updaters, and deprecated OS polling to ensure faster cold boots and a minimal memory footprint.
 
-![Dopaminescreenshot](Dopamine.screenshot.png)
+### Key Modernizations
+* **Windows 11 Native Stability:** Purged deprecated Windows 10 Acrylic composition APIs (`SetWindowCompositionAttribute`) that caused graphical glitches and desktop window manager crashes on modern OS builds.
+* **Modern Media Controls:** Replaced brittle, low-level keyboard hooks with native Windows System Media Transport Controls (SMTC) integration.
+* **Gapless Playback:** Re-architected track transition logic to run asynchronously, removing database-write blocking and unlocking perfectly gapless playback.
+* **High-Res Artwork:** Migrated from deprecated Last.fm APIs to the iTunes Search API for downloading missing artwork, utilizing automatic lightweight 80% JPEG compression.
 
-## Documentation ##
+## Compilation Instructions
 
-Dopamine 2's documentation can be found [here](https://github.com/digimezzo/dopamine-windows/blob/master/Dopamine%202%20Documentation.pdf).
-A huge thanks to [Theocharis Georgios](https://github.com/GeorgeTheocharis4) for writing the documentation from scratch!
+Dopamine is written in C# (WPF) and powered by the [CSCore sound library](https://github.com/filoe/cscore). We recommend using **Visual Studio 2022**.
 
-## Compile instructions ##
+**Prerequisites:**
+The Dopamine source code relies on the Windows 10 SDK for modern system notifications (`Windows.winmd`).
+1. Install the Windows 10 SDK.
+2. Locate `Windows.winmd` (e.g., `C:\Program Files (x86)\Windows Kits\10\UnionMetadata\10.0.17134.0\Windows.winmd`).
+3. Copy the file up to its parent folder so it sits at: `C:\Program Files (x86)\Windows Kits\10\UnionMetadata\Windows.winmd`.
+4. The project also relies on `System.Runtime.WindowsRuntime.dll`. Ensure it is available at `C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETCore\v4.5\System.Runtime.WindowsRuntime.dll`.
 
-The Dopamine source code has a dependency to file **Windows.winmd**, which is provided by the Windows 10 SDK (for the system notifications). Install the Windows 10 SDK for your version of Windows 10. For Windows 10 10.0.17134.0, Windows.winmd can be found in the folder **C:\Program Files (x86)\Windows Kits\10\UnionMetadata\10.0.17134.0**. You'll have to copy this file to its parent folder. So it is available in this path: **C:\Program Files (x86)\Windows Kits\10\UnionMetadata\Windows.winmd**.
+Once dependencies are met, open `Dopamine.sln` and build.
 
-The Dopamine source code also has a dependency to file **C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETCore\v4.5\System.Runtime.WindowsRuntime.dll**. Make sure it is available on your computer.
+## Credits & License
 
-If both dependencies are met, Dopamine should compile without issues on Windows 7, 8, 8.1 and 10.
-
-If you are still unable to find assembly **Windows** after following these steps, please check issue <a href="https://github.com/digimezzo/dopamine-windows/issues/836">#836</a> for more help finding it.
-
-## Helping out with translations ##
-
-Currently, I'm getting language files via Facebook, Twitter, e-mail and GitHub. It's getting hard to keep track of them and translations get lost. I'd like to centralize translation contributions on GitHub. The instruction below should help you do this.
-
-The most up to date translation files can be found in this repository, <a href="https://github.com/digimezzo/dopamine-windows/tree/master/Dopamine/Languages">over here</a>.
-
-For existing translation files, please edit them directly on GitHub and send me a pull request. <a href="https://help.github.com/articles/editing-files-in-another-user-s-repository/">Editing files in another user's repository</a> explains how to do this.
-
-For new translation files (which are not yet in the repository), please add them via pull request. If you don't know how to add them, send me an e-mail to inform me which language you'd like me to add. I'll add the language file to the repository, so you can edit it directly on GitHub following the above procedure.
+* Dopamine was originally developed by [Digimezzo](https://github.com/digimezzo).
+* Powered by the [CSCore sound library](https://github.com/filoe/cscore).
+* This software uses code of [FFmpeg](http://ffmpeg.org) licensed under the [LGPLv2.1](http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html) and its source can be downloaded [here](https://github.com/FFmpeg/FFmpeg).
