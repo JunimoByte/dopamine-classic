@@ -1,4 +1,4 @@
-﻿<baseviews:TracksViewBase x:Class="Dopamine.Views.FullPlayer.Collection.CollectionAlbums"
+<baseviews:TracksViewBase x:Class="Dopamine.Views.FullPlayer.Collection.CollectionAlbums"
                           xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                           xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                           xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -58,11 +58,11 @@
                 <dc:MultiSelectListBox x:Name="ListBoxAlbums"
                                        Style="{StaticResource ListBoxAlbums}"
                                        BorderThickness="0"
+                                       VirtualizingStackPanel.IsVirtualizing="True"
+                                       VirtualizingStackPanel.VirtualizationMode="Recycling"
                                        MouseDoubleClick="ListBoxAlbums_MouseDoubleClick"
                                        PreviewKeyDown="ListBoxAlbums_PreviewKeyDown" 
                                        SelectionMode="Extended"
-                                       HorizontalAlignment="Left"
-                                       VerticalAlignment="Top"
                                        ItemsSource="{Binding AlbumsCvs.View}">
                     <i:Interaction.Triggers>
                         <i:EventTrigger EventName="SelectionChanged">

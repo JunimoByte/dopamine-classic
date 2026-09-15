@@ -190,6 +190,7 @@
     <Compile Include="Controls\ScalingTextBlock.cs" />
     <Compile Include="Controls\SearchBox.cs" />
     <Compile Include="Controls\SelectionChangedComboBox.cs" />
+    <Compile Include="Controls\AsyncImage.cs" />
     <Compile Include="Controls\SourceChangedImage.cs" />
     <Compile Include="Controls\SplitViewRadioButton.cs" />
     <Compile Include="Controls\SyncRing.cs" />
@@ -1492,6 +1493,7 @@
   </Target>
   -->
 </Project>
+
 
 
 

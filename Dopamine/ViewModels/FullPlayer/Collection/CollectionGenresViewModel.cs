@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Settings;
 using Digimezzo.Foundation.Core.Utils;
 using Dopamine.Core.Base;
@@ -276,10 +276,12 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
                     this.SelectedGenres.Add(item.GenreName);
                 }
             }
-
-            await this.GetGenreAlbumsAsync(this.SelectedGenres, this.AlbumOrder);
             this.SetTrackOrder("GenresTrackOrder");
-            await this.GetTracksAsync(null, this.SelectedGenres, this.SelectedAlbums, this.TrackOrder);
+
+            await Task.WhenAll(
+                this.GetGenreAlbumsAsync(this.SelectedGenres, this.AlbumOrder),
+                this.GetTracksAsync(null, this.SelectedGenres, this.SelectedAlbums, this.TrackOrder)
+            );
         }
 
         private async Task AddGenresToPlaylistAsync(IList<string> genres, string playlistName)
@@ -391,9 +393,11 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
 
         protected async override Task FillListsAsync()
         {
-            await this.GetGenresAsync();
-            await this.GetGenreAlbumsAsync(this.SelectedGenres, this.AlbumOrder);
-            await this.GetTracksAsync(null, this.SelectedGenres, this.SelectedAlbums, this.TrackOrder);
+            await Task.WhenAll(
+                this.GetGenresAsync(),
+                this.GetGenreAlbumsAsync(this.SelectedGenres, this.AlbumOrder),
+                this.GetTracksAsync(null, this.SelectedGenres, this.SelectedAlbums, this.TrackOrder)
+            );
         }
 
         protected async override Task EmptyListsAsync()

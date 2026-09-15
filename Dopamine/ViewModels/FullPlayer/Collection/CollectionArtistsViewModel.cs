@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Settings;
 using Digimezzo.Foundation.Core.Utils;
 using Dopamine.Core.Base;
@@ -313,10 +313,12 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
             }
 
             this.RaisePropertyChanged(nameof(this.HasSelectedArtists));
-
-            await this.GetArtistAlbumsAsync(this.SelectedArtists, this.ArtistType, this.AlbumOrder);
             this.SetTrackOrder("ArtistsTrackOrder");
-            await this.GetTracksAsync(this.SelectedArtists, null, this.SelectedAlbums, this.TrackOrder);
+
+            await Task.WhenAll(
+                this.GetArtistAlbumsAsync(this.SelectedArtists, this.ArtistType, this.AlbumOrder),
+                this.GetTracksAsync(this.SelectedArtists, null, this.SelectedAlbums, this.TrackOrder)
+            );
         }
 
         private async Task AddArtistsToPlaylistAsync(IList<string> artists, string playlistName)
@@ -473,9 +475,11 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
 
         protected async override Task FillListsAsync()
         {
-            await this.GetArtistsAsync(this.ArtistType);
-            await this.GetArtistAlbumsAsync(this.SelectedArtists, this.ArtistType, this.AlbumOrder);
-            await this.GetTracksAsync(this.SelectedArtists, null, this.SelectedAlbums, this.TrackOrder);
+            await Task.WhenAll(
+                this.GetArtistsAsync(this.ArtistType),
+                this.GetArtistAlbumsAsync(this.SelectedArtists, this.ArtistType, this.AlbumOrder),
+                this.GetTracksAsync(this.SelectedArtists, null, this.SelectedAlbums, this.TrackOrder)
+            );
         }
 
         protected async override Task EmptyListsAsync()

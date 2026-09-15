@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Settings;
+using Digimezzo.Foundation.Core.Settings;
 using Dopamine.Core.Base;
 using Dopamine.Data;
 using Dopamine.Services.Collection;
@@ -96,8 +96,10 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
 
         protected async override Task FillListsAsync()
         {
-            await this.GetAllAlbumsAsync(this.AlbumOrder);
-            await this.GetTracksAsync(null, null, this.SelectedAlbums, this.TrackOrder);
+            await Task.WhenAll(
+                this.GetAllAlbumsAsync(this.AlbumOrder),
+                this.GetTracksAsync(null, null, this.SelectedAlbums, this.TrackOrder)
+            );
         }
 
         protected async override Task EmptyListsAsync()

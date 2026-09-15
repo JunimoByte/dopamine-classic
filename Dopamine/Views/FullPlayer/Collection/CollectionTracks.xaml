@@ -1,4 +1,4 @@
-﻿<baseviews:CommonViewBase x:Class="Dopamine.Views.FullPlayer.Collection.CollectionTracks"
+<baseviews:CommonViewBase x:Class="Dopamine.Views.FullPlayer.Collection.CollectionTracks"
                           xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                           xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                           xmlns:dc="clr-namespace:Digimezzo.Foundation.WPF.Controls;assembly=Digimezzo.Foundation.WPF"
@@ -49,6 +49,7 @@
             KeyUp="DataGridTracks_KeyUp"
             VirtualizingStackPanel.IsVirtualizing="True" 
             VirtualizingStackPanel.VirtualizationMode="Recycling" 
+            VirtualizingPanel.IsVirtualizingWhenGrouping="True" 
             Sorting="DataGridTracks_Sorting"
             ItemsSource="{Binding TracksCvs.View, NotifyOnTargetUpdated=True}"
             TargetUpdated="DataGridTracks_TargetUpdated">
@@ -206,3 +207,4 @@
         </pc:DataGridEx>
     </DockPanel>
 </baseviews:CommonViewBase>
+

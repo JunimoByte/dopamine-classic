@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Settings>
   <Namespace Name="Configuration">
     <Setting Name="Version">
@@ -92,7 +92,7 @@
   </Namespace>
   <Namespace Name="Behaviour">
     <Setting Name="EnableRating">
-      <Value>True</Value>
+      <Value>False</Value>
     </Setting>
     <Setting Name="EnableLove">
       <Value>False</Value>
@@ -104,10 +104,10 @@
       <Value>True</Value>
     </Setting>
     <Setting Name="MinimizeToTray">
-      <Value>False</Value>
+      <Value>True</Value>
     </Setting>
     <Setting Name="CloseToTray">
-      <Value>False</Value>
+      <Value>True</Value>
     </Setting>
     <Setting Name="FollowTrack">
       <Value>True</Value>
@@ -116,7 +116,7 @@
       <Value>False</Value>
     </Setting>
     <Setting Name="ShowNotificationWhenPlaying">
-      <Value>True</Value>
+      <Value>False</Value>
     </Setting>
     <Setting Name="ShowNotificationWhenPausing">
       <Value>False</Value>

@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Utils;
+using Digimezzo.Foundation.Core.Utils;
 using Dopamine.Core.Base;
 using Dopamine.Core.Extensions;
 using System;
@@ -113,17 +113,13 @@ namespace Dopamine.Core.Utils
         {
             if (string.IsNullOrEmpty(originalString)) return string.Empty;
 
-            string returnString = originalString.ToLower().Trim();
+            string returnString = originalString.Trim();
 
             if (removePrefix)
             {
-                try
+                if (returnString.StartsWith("The ", StringComparison.OrdinalIgnoreCase))
                 {
-                    returnString = returnString.TrimStart("the ").Trim();
-                }
-                catch (Exception)
-                {
-                    // Swallow
+                    returnString = returnString.Substring(4).Trim();
                 }
             }
 

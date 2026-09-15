@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2011 - 2012, Jacob Johnston 
+// Copyright (C) 2011 - 2012, Jacob Johnston 
 //
 // Permission is hereby granted, free of charge, to any person obtaining a 
 // copy of this software and associated documentation files (the "Software"), 
@@ -254,7 +254,7 @@ namespace Dopamine.Controls
 
         public SpectrumAnalyzer()
         {
-            this.animationTimer = new DispatcherTimer(DispatcherPriority.ApplicationIdle)
+            this.animationTimer = new DispatcherTimer(DispatcherPriority.Normal)
             {
                 Interval = TimeSpan.FromMilliseconds(defaultRefreshInterval)
             };
@@ -398,11 +398,13 @@ namespace Dopamine.Controls
                         switch (this.AnimationStyle)
                         {
                             case SpectrumAnimationStyle.Nervous:
-                                this.barShapes[barIndex].Margin = new Thickness(xCoord, (height - 1) - barHeight, 0, 0);
+                                Canvas.SetLeft(this.barShapes[barIndex], xCoord);
+                                Canvas.SetTop(this.barShapes[barIndex], (height - 1) - barHeight);
                                 this.barShapes[barIndex].Height = barHeight;
                                 break;
                             case SpectrumAnimationStyle.Gentle:
-                                this.barShapes[barIndex].Margin = new Thickness(xCoord, (height - 1) - this.channelPeakData[barIndex], 0, 0);
+                                Canvas.SetLeft(this.barShapes[barIndex], xCoord);
+                                Canvas.SetTop(this.barShapes[barIndex], (height - 1) - this.channelPeakData[barIndex]);
                                 this.barShapes[barIndex].Height = this.channelPeakData[barIndex];
                                 break;
                             default:
@@ -484,11 +486,12 @@ namespace Dopamine.Controls
                 double xCoord = this.BarSpacing + (this.BarWidth * i) + (this.BarSpacing * i) + 1;
                 Rectangle barRectangle = new Rectangle()
                 {
-                    Margin = new Thickness(xCoord, height, 0, 0),
                     Width = this.BarWidth,
                     Height = 0,
                     Fill = this.BarBackground
                 };
+                Canvas.SetLeft(barRectangle, xCoord);
+                Canvas.SetTop(barRectangle, height);
 
                 this.barShapes.Add(barRectangle);
             }

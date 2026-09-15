@@ -1,4 +1,4 @@
-﻿using Dopamine.Core.Base;
+using Dopamine.Core.Base;
 using Dopamine.Core.Utils;
 using Dopamine.Data;
 using Dopamine.Data.Entities;
@@ -59,29 +59,31 @@ namespace Dopamine.Services.Utils
 
             await Task.Run(() =>
             {
+                var comparer = StringComparer.CurrentCultureIgnoreCase;
+
                 switch (trackOrder)
                 {
                     case TrackOrder.Alphabetical:
-                        orderedTracks = tracks.OrderBy((t) => !string.IsNullOrEmpty(FormatUtils.GetSortableString(t.TrackTitle)) ? FormatUtils.GetSortableString(t.TrackTitle) : FormatUtils.GetSortableString(t.FileName)).ToList();
+                        orderedTracks = tracks.OrderBy((t) => !string.IsNullOrEmpty(FormatUtils.GetSortableString(t.TrackTitle)) ? FormatUtils.GetSortableString(t.TrackTitle) : FormatUtils.GetSortableString(t.FileName), comparer).ToList();
                         break;
                     case TrackOrder.ByAlbum:
-                        orderedTracks = tracks.OrderBy((t) => FormatUtils.GetSortableString(t.AlbumArtist)).ThenBy((t) => FormatUtils.GetSortableString(t.AlbumTitle)).ThenBy((t) => t.SortDiscNumber).ThenBy((t) => t.SortTrackNumber).ToList();
+                        orderedTracks = tracks.OrderBy((t) => FormatUtils.GetSortableString(t.AlbumArtist), comparer).ThenBy((t) => FormatUtils.GetSortableString(t.AlbumTitle), comparer).ThenBy((t) => t.Track.DiscNumber ?? 0).ThenBy((t) => t.Track.TrackNumber ?? 0).ToList();
                         break;
                     case TrackOrder.ByFileName:
-                        orderedTracks = tracks.OrderBy((t) => FormatUtils.GetSortableString(t.FileName)).ToList();
+                        orderedTracks = tracks.OrderBy((t) => FormatUtils.GetSortableString(t.FileName), comparer).ToList();
                         break;
                     case TrackOrder.ByRating:
                         orderedTracks = tracks.OrderByDescending((t) => t.Rating).ToList();
                         break;
                     case TrackOrder.ReverseAlphabetical:
-                        orderedTracks = tracks.OrderByDescending((t) => !string.IsNullOrEmpty(FormatUtils.GetSortableString(t.TrackTitle)) ? FormatUtils.GetSortableString(t.TrackTitle) : FormatUtils.GetSortableString(t.FileName)).ToList();
+                        orderedTracks = tracks.OrderByDescending((t) => !string.IsNullOrEmpty(FormatUtils.GetSortableString(t.TrackTitle)) ? FormatUtils.GetSortableString(t.TrackTitle) : FormatUtils.GetSortableString(t.FileName), comparer).ToList();
                         break;
                     case TrackOrder.None:
                         orderedTracks = tracks.ToList();
                         break;
                     default:
                         // By album
-                        orderedTracks = tracks.OrderBy((t) => FormatUtils.GetSortableString(t.AlbumTitle)).ThenBy((t) => t.SortDiscNumber).ThenBy((t) => t.SortTrackNumber).ToList();
+                        orderedTracks = tracks.OrderBy((t) => FormatUtils.GetSortableString(t.AlbumTitle), comparer).ThenBy((t) => t.Track.DiscNumber ?? 0).ThenBy((t) => t.Track.TrackNumber ?? 0).ToList();
                         break;
                 }
             });

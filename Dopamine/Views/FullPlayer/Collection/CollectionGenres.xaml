@@ -1,4 +1,4 @@
-﻿<baseviews:TracksViewBase x:Class="Dopamine.Views.FullPlayer.Collection.CollectionGenres"
+<baseviews:TracksViewBase x:Class="Dopamine.Views.FullPlayer.Collection.CollectionGenres"
                           xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                           xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                           xmlns:dc="clr-namespace:Digimezzo.Foundation.WPF.Controls;assembly=Digimezzo.Foundation.WPF"
@@ -133,14 +133,14 @@
                             Click="AlbumsButton_Click" ToolTip="{DynamicResource Language_Select_None}"/>
                 </DockPanel>
                 <dc:MultiSelectListBox x:Name="ListBoxAlbums"
-                                                                 Style="{StaticResource ListBoxAlbums}"
-                                                                 ItemsSource="{Binding AlbumsCvs.View}"
-                                                                 BorderThickness="0"
-                                                                 MouseDoubleClick="ListBoxAlbums_MouseDoubleClick"
-                                                                 PreviewKeyDown="ListBoxAlbums_PreviewKeyDown"
-                                                                 SelectionMode="Extended"
-                                                                 HorizontalAlignment="Left" 
-                                                                 VerticalAlignment="Top">
+                                       Style="{StaticResource ListBoxAlbums}"
+                                       ItemsSource="{Binding AlbumsCvs.View}"
+                                       BorderThickness="0"
+                                       VirtualizingStackPanel.IsVirtualizing="True"
+                                       VirtualizingStackPanel.VirtualizationMode="Recycling"
+                                       MouseDoubleClick="ListBoxAlbums_MouseDoubleClick"
+                                       PreviewKeyDown="ListBoxAlbums_PreviewKeyDown"
+                                       SelectionMode="Extended">
                     <i:Interaction.Triggers>
                         <i:EventTrigger EventName="SelectionChanged">
                             <i:InvokeCommandAction Command="{Binding SelectedAlbumsCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type ListBox}}, Path=SelectedItems}"/>

@@ -153,8 +153,10 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
 
         protected async override Task FillListsAsync()
         {
-            await this.GetFoldersAsync();
-            await this.GetSubfoldersAsync(null);
+            await Task.WhenAll(
+                this.GetFoldersAsync(),
+                this.GetSubfoldersAsync(null)
+            );
         }
 
         protected async override Task EmptyListsAsync()
