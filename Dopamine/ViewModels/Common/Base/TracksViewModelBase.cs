@@ -270,7 +270,7 @@ namespace Dopamine.ViewModels.Common.Base
                 this.TracksCvs.Filter += new FilterEventHandler(TracksCvs_Filter);
 
                 // Update count
-                this.TracksCount = this.TracksCvs.View.Cast<TrackViewModel>().Count();
+                this.TracksCount = ((CollectionView)this.TracksCvs.View).Count;
 
                 // Group by Album if needed
                 if (this.TrackOrder == TrackOrder.ByAlbum)
@@ -423,7 +423,7 @@ namespace Dopamine.ViewModels.Common.Base
                 if (this.TracksCvs != null)
                 {
                     this.TracksCvs.View.Refresh();
-                    this.TracksCount = this.TracksCvs.View.Cast<TrackViewModel>().Count();
+                    this.TracksCount = ((CollectionView)this.TracksCvs.View).Count;
                 }
             });
 
@@ -549,6 +549,11 @@ namespace Dopamine.ViewModels.Common.Base
 
         protected async override Task LoadedCommandAsync()
         {
+            // Yield to the UI thread for a fraction of a second. This acts as a 'lazy load', 
+            // allowing the WPF navigation transition animation to finish before we start 
+            // blocking the UI thread with the heavy layout/grouping passes.
+            await Task.Delay(50);
+
             // Only load if lists are empty (first visit or after a collection change).
             // Subsequent tab switches are instant — data stays in memory.
             if (this.TracksCount == 0)

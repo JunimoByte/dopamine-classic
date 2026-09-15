@@ -361,7 +361,7 @@ namespace Dopamine.ViewModels.Common.Base
                 this.AlbumsCvs.Filter += new FilterEventHandler(AlbumsCvs_Filter);
 
                 // Update count
-                this.AlbumsCount = this.AlbumsCvs.View.Cast<AlbumViewModel>().Count();
+                this.AlbumsCount = ((CollectionView)this.AlbumsCvs.View).Count;
             });
 
             // Set Album artwork
@@ -479,7 +479,7 @@ namespace Dopamine.ViewModels.Common.Base
                 if (this.AlbumsCvs != null)
                 {
                     this.AlbumsCvs.View.Refresh();
-                    this.AlbumsCount = this.AlbumsCvs.View.Cast<AlbumViewModel>().Count();
+                    this.AlbumsCount = ((CollectionView)this.AlbumsCvs.View).Count;
                 }
             });
 

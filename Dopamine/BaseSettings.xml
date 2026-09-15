@@ -275,7 +275,7 @@
   </Namespace>
   <Namespace Name="TracksGrid">
     <Setting Name="VisibleColumns">
-      <Value>rating;artist;album;genre;length;albumartist;tracknumber;year</Value>
+      <Value>artist;album;genre;length;albumartist;tracknumber;year</Value>
     </Setting>
     <Setting Name="SortColumn">
       <Value></Value>
