@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Utils;
+using Digimezzo.Foundation.Core.Utils;
 using Digimezzo.Foundation.Core.Logging;
 using Dopamine.Core.Base;
 using Dopamine.Core.Extensions;
@@ -75,7 +75,8 @@ namespace Dopamine.Data.Repositories
                             for (int i = 0; i < safePaths.Count; i += chunkSize)
                             {
                                 var chunk = safePaths.Skip(i).Take(chunkSize).ToList();
-                                var chunkTracks = conn.Query<Track>($"{this.SelectVisibleTracksQuery()} AND {DataUtils.CreateInClause("t.SafePath", chunk)};");
+                                string inClause = DataUtils.CreateInClause("t.SafePath", chunk, out List<object> p);
+                                var chunkTracks = conn.Query<Track>($"{this.SelectVisibleTracksQuery()} AND {inClause};", p.ToArray());
                                 tracks.AddRange(chunkTracks);
                             }
                         }
@@ -165,9 +166,14 @@ namespace Dopamine.Data.Repositories
                     {
                         try
                         {
-                            string query = $"{this.SelectVisibleTracksQuery()} AND ({DataUtils.CreateOrLikeClause("t.Artists", artists, Constants.ColumnValueDelimiter)} OR {DataUtils.CreateOrLikeClause("t.AlbumArtists", artists, Constants.ColumnValueDelimiter)});";
+                            string artistsClause = DataUtils.CreateOrLikeClause("t.Artists", artists, out List<object> p1, Constants.ColumnValueDelimiter);
+                            string albumArtistsClause = DataUtils.CreateOrLikeClause("t.AlbumArtists", artists, out List<object> p2, Constants.ColumnValueDelimiter);
+                            string query = $"{this.SelectVisibleTracksQuery()} AND ({artistsClause} OR {albumArtistsClause});";
 
-                            tracks = conn.Query<Track>(query);
+                            var p = new List<object>();
+                            p.AddRange(p1);
+                            p.AddRange(p2);
+                            tracks = conn.Query<Track>(query, p.ToArray());
                         }
                         catch (Exception ex)
                         {
@@ -196,7 +202,8 @@ namespace Dopamine.Data.Repositories
                     {
                         try
                         {
-                            tracks = conn.Query<Track>($"{this.SelectVisibleTracksQuery()} AND {DataUtils.CreateOrLikeClause("t.Genres", genreNames, Constants.ColumnValueDelimiter)};");
+                            string genresClause = DataUtils.CreateOrLikeClause("t.Genres", genreNames, out List<object> p, Constants.ColumnValueDelimiter);
+                            tracks = conn.Query<Track>($"{this.SelectVisibleTracksQuery()} AND {genresClause};", p.ToArray());
                         }
                         catch (Exception ex)
                         {
@@ -229,7 +236,8 @@ namespace Dopamine.Data.Repositories
                             for (int i = 0; i < albumKeys.Count; i += chunkSize)
                             {
                                 var chunk = albumKeys.Skip(i).Take(chunkSize).ToList();
-                                var chunkTracks = conn.Query<Track>($"{this.SelectVisibleTracksQuery()} AND {DataUtils.CreateInClause("t.AlbumKey", chunk)};");
+                                string inClause = DataUtils.CreateInClause("t.AlbumKey", chunk, out List<object> p);
+                                var chunkTracks = conn.Query<Track>($"{this.SelectVisibleTracksQuery()} AND {inClause};", p.ToArray());
                                 tracks.AddRange(chunkTracks);
                             }
                         }
@@ -538,25 +546,34 @@ namespace Dopamine.Data.Repositories
                         {
                             string filterQuery = string.Empty;
 
+                            var p = new List<object>();
                             if (artists != null)
                             {
                                 if (artistType.Equals(ArtistType.All))
                                 {
-                                    filterQuery = $" AND ({DataUtils.CreateOrLikeClause("Artists", artists, Constants.ColumnValueDelimiter)} OR {DataUtils.CreateOrLikeClause("AlbumArtists", artists, Constants.ColumnValueDelimiter)})";
+                                    string c1 = DataUtils.CreateOrLikeClause("Artists", artists, out List<object> p1, Constants.ColumnValueDelimiter);
+                                    string c2 = DataUtils.CreateOrLikeClause("AlbumArtists", artists, out List<object> p2, Constants.ColumnValueDelimiter);
+                                    filterQuery = $" AND ({c1} OR {c2})";
+                                    p.AddRange(p1);
+                                    p.AddRange(p2);
                                 }
                                 else if (artistType.Equals(ArtistType.Track))
                                 {
-                                    filterQuery = $" AND ({DataUtils.CreateOrLikeClause("Artists", artists, Constants.ColumnValueDelimiter)})";
+                                    string c1 = DataUtils.CreateOrLikeClause("Artists", artists, out List<object> p1, Constants.ColumnValueDelimiter);
+                                    filterQuery = $" AND ({c1})";
+                                    p.AddRange(p1);
                                 }
                                 else if (artistType.Equals(ArtistType.Album))
                                 {
-                                    filterQuery = $" AND ({DataUtils.CreateOrLikeClause("AlbumArtists", artists, Constants.ColumnValueDelimiter)})";
+                                    string c2 = DataUtils.CreateOrLikeClause("AlbumArtists", artists, out List<object> p2, Constants.ColumnValueDelimiter);
+                                    filterQuery = $" AND ({c2})";
+                                    p.AddRange(p2);
                                 }
                             }
 
                             string query = this.SelectVisibleAlbumDataQuery() + filterQuery + " GROUP BY AlbumKey";
 
-                            albumData = conn.Query<AlbumData>(query);
+                            albumData = conn.Query<AlbumData>(query, p.ToArray());
                         }
                         catch (Exception ex)
                         {
@@ -587,14 +604,17 @@ namespace Dopamine.Data.Repositories
                         {
                             string filterQuery = string.Empty;
 
+                            var p = new List<object>();
                             if (genres != null)
                             {
-                                filterQuery = $" AND {DataUtils.CreateOrLikeClause("Genres", genres, Constants.ColumnValueDelimiter)}";
+                                string c = DataUtils.CreateOrLikeClause("Genres", genres, out List<object> p1, Constants.ColumnValueDelimiter);
+                                filterQuery = $" AND {c}";
+                                p.AddRange(p1);
                             }
 
                             string query = this.SelectVisibleAlbumDataQuery() + filterQuery + " GROUP BY AlbumKey";
 
-                            albumData = conn.Query<AlbumData>(query);
+                            albumData = conn.Query<AlbumData>(query, p.ToArray());
                         }
                         catch (Exception ex)
                         {
@@ -914,6 +934,7 @@ namespace Dopamine.Data.Repositories
         }
     }
 }
+
 
 
 

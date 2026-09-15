@@ -1,73 +1,74 @@
 using System;
 using System.IO;
-using System.Timers;
-using System.Windows;
+using System.Threading;
 
 namespace Dopamine.Core.Helpers
 {
     /// <summary>
-    /// A folder watcher that is not too nervous when notifying of changes
+    /// A folder watcher that is not too nervous when notifying of changes,
+    /// acting as a thread-safe debouncer.
     /// </summary>
     public class GentleFolderWatcher : IDisposable
     {
-        private FileSystemWatcher watcher = new FileSystemWatcher();
-        private Timer changeNotificationTimer = new Timer();
+        private FileSystemWatcher watcher;
+        private Timer debounceTimer;
+        private readonly int interval;
+        private bool disposedValue = false;
 
         public event EventHandler FolderChanged = delegate { };
 
         public GentleFolderWatcher(string folderPath, bool includeSubdirectories, int intervalMilliSeconds = 500)
         {
-            // Timer
-            this.changeNotificationTimer.Interval = intervalMilliSeconds;
-            this.changeNotificationTimer.Elapsed += new ElapsedEventHandler(ChangeNotificationTimerElapsed);
+            this.interval = intervalMilliSeconds;
+            
+            // Initialize the timer in an infinite wait state (disabled)
+            this.debounceTimer = new Timer(OnTimerElapsed, null, Timeout.Infinite, Timeout.Infinite);
 
-            // Set the folder to watch
-            this.watcher.Path = folderPath;
-
-            // Watch subdirectories or not
-            this.watcher.IncludeSubdirectories = includeSubdirectories;
-
-            // Add event handlers
-            this.watcher.Changed += new FileSystemEventHandler(OnChanged);
-            this.watcher.Created += new FileSystemEventHandler(OnChanged);
-            this.watcher.Deleted += new FileSystemEventHandler(OnChanged);
-            this.watcher.Renamed += new RenamedEventHandler(OnRenamed);
-        }
-
-        private void OnRenamed(object sender, RenamedEventArgs e)
-        {
-            this.changeNotificationTimer.Stop();
-            this.changeNotificationTimer.Start();
-        }
-
-        private void OnChanged(object sender, FileSystemEventArgs e)
-        {
-            this.changeNotificationTimer.Stop();
-            this.changeNotificationTimer.Start();
-        }
-
-        private void ChangeNotificationTimerElapsed(object sender, ElapsedEventArgs e)
-        {
-            this.changeNotificationTimer.Stop();
-
-            Application.Current.Dispatcher.Invoke(() =>
+            this.watcher = new FileSystemWatcher(folderPath)
             {
-                this.FolderChanged(this, new EventArgs());
-            });
+                IncludeSubdirectories = includeSubdirectories
+            };
+
+            this.watcher.Changed += OnChanged;
+            this.watcher.Created += OnChanged;
+            this.watcher.Deleted += OnChanged;
+            this.watcher.Renamed += OnRenamed;
+        }
+
+        private void OnRenamed(object sender, RenamedEventArgs e) => Trigger();
+        private void OnChanged(object sender, FileSystemEventArgs e) => Trigger();
+
+        private void Trigger()
+        {
+            if (!disposedValue)
+            {
+                // Reset the timer to fire after the interval. If triggered again before interval, it resets.
+                this.debounceTimer?.Change(this.interval, Timeout.Infinite);
+            }
+        }
+
+        private void OnTimerElapsed(object state)
+        {
+            if (!disposedValue)
+            {
+                // Fire the event on the background ThreadPool thread, consumers handle their own UI dispatching.
+                this.FolderChanged(this, EventArgs.Empty);
+            }
         }
 
         public void Suspend()
         {
-            this.watcher.EnableRaisingEvents = false;
-            this.changeNotificationTimer.Stop();
+            if (this.watcher != null) this.watcher.EnableRaisingEvents = false;
+            if (this.debounceTimer != null) this.debounceTimer.Change(Timeout.Infinite, Timeout.Infinite);
         }
 
         public void Resume()
         {
-            this.watcher.EnableRaisingEvents = true;
+            if (this.watcher != null && !this.disposedValue)
+            {
+                this.watcher.EnableRaisingEvents = true;
+            }
         }
-
-        private bool disposedValue = false;
 
         protected virtual void Dispose(bool disposing)
         {
@@ -75,11 +76,18 @@ namespace Dopamine.Core.Helpers
             {
                 if (disposing)
                 {
-                   if(this.watcher != null)
+                    if (this.watcher != null)
                     {
                         this.watcher.EnableRaisingEvents = false;
-                        this.changeNotificationTimer.Stop();
                         this.watcher.Dispose();
+                        this.watcher = null;
+                    }
+
+                    if (this.debounceTimer != null)
+                    {
+                        this.debounceTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                        this.debounceTimer.Dispose();
+                        this.debounceTimer = null;
                     }
                 }
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -25,20 +25,30 @@ namespace Dopamine.Core.Extensions
             return list == null || list.Count == 0;
         }
 
+        private static readonly System.Threading.ThreadLocal<Random> ThreadRandom = new System.Threading.ThreadLocal<Random>(() =>
+        {
+            using (var rng = new System.Security.Cryptography.RNGCryptoServiceProvider())
+            {
+                byte[] buffer = new byte[4];
+                rng.GetBytes(buffer);
+                return new Random(BitConverter.ToInt32(buffer, 0));
+            }
+        });
+
         public static List<T> Randomize<T>(this List<T> list)
         {
-            var originalList = new List<T>(list); // Create a new list, so no operation performed here affects the original list object.
-            var randomList = new List<T>();
+            if (list == null) return new List<T>();
+            
+            var randomList = new List<T>(list); // Create a new list to not mutate original
+            var r = ThreadRandom.Value;
 
-            var r = new Random();
-
-            int randomIndex = 0;
-
-            while (originalList.Count > 0)
+            // O(N) Fisher-Yates Shuffle (In-place)
+            for (int i = randomList.Count - 1; i > 0; i--)
             {
-                randomIndex = r.Next(0, originalList.Count);  // Choose a random object in the list
-                randomList.Add(originalList[randomIndex]); // Add it to the new, random list
-                originalList.RemoveAt(randomIndex); // Remove to avoid duplicates
+                int j = r.Next(0, i + 1);
+                T temp = randomList[i];
+                randomList[i] = randomList[j];
+                randomList[j] = temp;
             }
 
             return randomList;

@@ -14,6 +14,7 @@ namespace Dopamine.Services.Indexing
     {
         private IFolderRepository folderRepository;
         private IList<GentleFolderWatcher> watchers = new List<GentleFolderWatcher>();
+        private readonly object watchersLock = new object();
 
         public event EventHandler FoldersChanged = delegate { };
 
@@ -32,46 +33,54 @@ namespace Dopamine.Services.Indexing
 
         public async Task StartWatchingAsync()
         {
-            await this.StopWatchingAsync();
+            this.StopWatching();
 
             List<Folder> folders = await this.folderRepository.GetFoldersAsync();
 
-            foreach (Folder fol in folders)
+            lock (this.watchersLock)
             {
-                if (Directory.Exists(fol.Path))
+                foreach (Folder fol in folders)
                 {
-                    try
+                    if (Directory.Exists(fol.Path))
                     {
-                        // When the folder exists, but access is denied, creating the FileSystemWatcher throws an exception.
-                        var watcher = new GentleFolderWatcher(fol.Path, true, 500);
-                        watcher.FolderChanged += Watcher_FolderChanged;
-                        this.watchers.Add(watcher);
-                        watcher.Resume();
-                    }
-                    catch (Exception ex)
-                    {
-                        LogClient.Error($"Could not watch folder '{fol.Path}', even though it exists. Please check folder permissions. Exception: {ex.Message}");
+                        try
+                        {
+                            var watcher = new GentleFolderWatcher(fol.Path, true, 500);
+                            watcher.FolderChanged += Watcher_FolderChanged;
+                            this.watchers.Add(watcher);
+                            watcher.Resume();
+                        }
+                        catch (Exception ex)
+                        {
+                            LogClient.Error($"Could not watch folder '{fol.Path}', even though it exists. Please check folder permissions. Exception: {ex.Message}");
+                        }
                     }
                 }
             }
         }
 
-        public async Task StopWatchingAsync()
+        public void StopWatching()
         {
-            if (this.watchers.Count == 0)
+            lock (this.watchersLock)
             {
-                return;
-            }
+                if (this.watchers.Count == 0)
+                {
+                    return;
+                }
 
-            await Task.Run(() =>
-            {
                 for (int i = this.watchers.Count - 1; i >= 0; i--)
                 {
                     this.watchers[i].FolderChanged -= Watcher_FolderChanged;
                     this.watchers[i].Dispose();
                     this.watchers.RemoveAt(i);
                 }
-            });
+            }
+        }
+
+        public Task StopWatchingAsync()
+        {
+            this.StopWatching();
+            return Task.CompletedTask;
         }
     }
 }

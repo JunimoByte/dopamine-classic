@@ -17,7 +17,7 @@ using System.Linq;
 using System.ServiceModel;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Timers;
+using System.Threading;
 using System.Windows;
 
 namespace Dopamine.Services.File
@@ -30,7 +30,7 @@ namespace Dopamine.Services.File
         private IContainerProvider container;
         private IList<string> files;
         private object lockObject = new object();
-        private Timer addFilesTimer;
+        private CancellationTokenSource debounceCts;
         private int addFilesMilliseconds = 250;
         private string instanceGuid;
 
@@ -45,9 +45,6 @@ namespace Dopamine.Services.File
             this.instanceGuid = Guid.NewGuid().ToString();
 
             this.files = new List<string>();
-            this.addFilesTimer = new Timer();
-            this.addFilesTimer.Interval = this.addFilesMilliseconds;
-            this.addFilesTimer.Elapsed += AddFilesTimerElapsedHandler;
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
             this.DeleteFileArtworkFromCacheAsync(this.instanceGuid);
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
@@ -61,7 +58,10 @@ namespace Dopamine.Services.File
             var tracks = new List<TrackViewModel>();
             TrackViewModel selectedTrack = await this.CreateTrackAsync(path);
 
-            tracks.Add(await this.CreateTrackAsync(path));
+            if (selectedTrack != null)
+            {
+                tracks.Add(selectedTrack);
+            }
 
             return new Tuple<List<TrackViewModel>, TrackViewModel>(tracks, selectedTrack);
         }
@@ -229,7 +229,7 @@ namespace Dopamine.Services.File
         {
             if (args.Length > 1)
             {
-                this.addFilesTimer.Stop();
+                this.debounceCts?.Cancel();
                 this.ImportingTracks(this, new EventArgs());
 
                 await Task.Run(() =>
@@ -253,29 +253,38 @@ namespace Dopamine.Services.File
 
         private void RestartAddFilesTimer()
         {
-            this.addFilesTimer.Stop();
-            this.addFilesTimer.Start();
+            this.debounceCts?.Cancel();
+            this.debounceCts = new CancellationTokenSource();
+            _ = DebounceImportAsync(this.debounceCts.Token);
         }
 
-        private async void AddFilesTimerElapsedHandler(Object sender, ElapsedEventArgs e)
+        private async Task DebounceImportAsync(CancellationToken token)
         {
-            this.addFilesTimer.Stop();
-
-            // Check if there is only 1 instance (this one) of the application running. If not,
-            // that could mean there are other instances trying to send files to this instance.
-            if (EnvironmentUtils.IsSingleInstance(ProductInformation.ApplicationName))
+            try
             {
-                lock (this.lockObject)
+                await Task.Delay(this.addFilesMilliseconds, token);
+
+                if (EnvironmentUtils.IsSingleInstance(ProductInformation.ApplicationName))
                 {
-                    LogClient.Info("Finished adding files. Number of files added = {0}", this.files.Count.ToString());
-                }
+                    lock (this.lockObject)
+                    {
+                        LogClient.Info("Finished adding files. Number of files added = {0}", this.files.Count.ToString());
+                    }
 
-                await Application.Current.Dispatcher.BeginInvoke(new Action(async () => await this.ImportFilesAsync()));
+                    await this.ImportFilesAsync();
+                }
+                else
+                {
+                    this.RestartAddFilesTimer();
+                }
             }
-            else
+            catch (TaskCanceledException)
             {
-                // There are still other instances trying to send files. Check again next time.
-                this.RestartAddFilesTimer();
+                // Debounced
+            }
+            catch (Exception ex)
+            {
+                LogClient.Error($"Error importing files: {ex.Message}");
             }
         }
 

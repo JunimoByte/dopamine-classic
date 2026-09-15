@@ -13,19 +13,16 @@ namespace Dopamine.Data
             return source.Replace("'", "''");
         }
 
-        public static string CreateInClause(string columnName, IList<string> clauseItems)
+        public static string CreateInClause(string columnName, IList<string> clauseItems, out List<object> parameters)
         {
-            string commaSeparatedItems = string.Join(",", clauseItems.Select((item) => "'" + EscapeQuotes(item) + "'").ToArray());
-
+            parameters = clauseItems.Cast<object>().ToList();
+            string commaSeparatedItems = string.Join(",", System.Linq.Enumerable.Repeat("?", clauseItems.Count));
             return $"{columnName} IN ({commaSeparatedItems})";
         }
 
-        public static string CreateOrLikeClause(string columnName, IList<string> clauseItems, string delimiter = "")
+        public static string CreateOrLikeClause(string columnName, IList<string> clauseItems, out List<object> parameters, string delimiter = "")
         {
-            var sb = new StringBuilder();
-
-            sb.AppendLine("(");
-
+            parameters = new List<object>();
             var orClauses = new List<string>();
 
             foreach (string clauseItem in clauseItems)
@@ -36,14 +33,12 @@ namespace Dopamine.Data
                 }
                 else
                 {
-                    orClauses.Add($@"(LOWER({columnName}) LIKE LOWER('%{delimiter}{clauseItem.Replace("'", "''")}{delimiter}%'))");
+                    orClauses.Add($@"(LOWER({columnName}) LIKE LOWER(?))");
+                    parameters.Add($"%{delimiter}{clauseItem}{delimiter}%");
                 }
             }
 
-            sb.AppendLine(string.Join(" OR ", orClauses.ToArray()));
-            sb.AppendLine(")");
-
-            return sb.ToString();
+            return "(" + string.Join(" OR ", orClauses) + ")";
         }
 
         public static IEnumerable<string> SplitColumnMultiValue(string columnMultiValue)
