@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Settings;
 using Dopamine.Core.Base;
 using Dopamine.Core.Extensions;
@@ -13,9 +13,11 @@ using Dopamine.Services.InfoDownload;
 using Dopamine.Services.Utils;
 using SQLite;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Dopamine.Services.Indexing
@@ -150,10 +152,10 @@ namespace Dopamine.Services.Indexing
                 await Task.Delay(100);
             }
 
-            await this.watcherManager.StopWatchingAsync();
-
             try
             {
+                await this.watcherManager.StopWatchingAsync();
+
                 this.allDiskPaths = await this.GetFolderPaths();
 
                 using (var conn = this.factory.GetConnection())
@@ -166,14 +168,19 @@ namespace Dopamine.Services.Indexing
                     }
                     else
                     {
-                        long databaseNeedsIndexingCount = conn.Table<Track>().Select(t => t).ToList().Where(t => t.NeedsIndexing == 1).LongCount();
-                        long databaseLastDateFileModified = conn.Table<Track>().Select(t => t).ToList().OrderByDescending(t => t.DateFileModified).Select(t => t.DateFileModified).FirstOrDefault();
-                        long diskLastDateFileModified = this.allDiskPaths.Count > 0 ? this.allDiskPaths.Select((t) => t.DateModifiedTicks).OrderByDescending((t) => t).First() : 0;
-                        long databaseTrackCount = conn.Table<Track>().Select(t => t).LongCount();
+                        // Use fast SQL scalar aggregates instead of full table scans.
+                        // Each old call was: conn.Table<Track>().Select(t => t).ToList()...
+                        // which loads every row into memory just to get one number.
+                        long databaseNeedsIndexingCount = conn.ExecuteScalar<long>("SELECT COUNT(*) FROM Track WHERE NeedsIndexing = 1");
+                        long databaseLastDateFileModified = conn.ExecuteScalar<long>("SELECT COALESCE(MAX(DateFileModified), 0) FROM Track");
+                        long diskLastDateFileModified = this.allDiskPaths.Count > 0
+                            ? this.allDiskPaths.Max(t => t.DateModifiedTicks)
+                            : 0;
+                        long databaseTrackCount = conn.ExecuteScalar<long>("SELECT COUNT(*) FROM Track");
 
-                        performIndexing = databaseNeedsIndexingCount > 0 |
-                                          databaseTrackCount != this.allDiskPaths.Count |
-                                          databaseLastDateFileModified < diskLastDateFileModified;
+                        performIndexing = databaseNeedsIndexingCount > 0
+                                       || databaseTrackCount != this.allDiskPaths.Count
+                                       || databaseLastDateFileModified < diskLastDateFileModified;
                     }
 
                     if (performIndexing)
@@ -320,27 +327,43 @@ namespace Dopamine.Services.Indexing
         {
             await Task.Run(() =>
             {
-                var dbPaths = new List<string>();
+                // Build a single HashSet of known safe paths from the DB in one query.
+                // Old code opened 2 connections and did 2 full ToList() passes then LINQ.
+                HashSet<string> dbSafePaths;
+                HashSet<string> removedSafePaths;
 
                 using (var conn = this.factory.GetConnection())
                 {
-                    dbPaths = conn.Table<Track>().ToList().Select((trk) => trk.SafePath).ToList();
-                }
+                    // One query for existing tracks
+                    dbSafePaths = new HashSet<string>(
+                        conn.Query<Track>("SELECT SafePath FROM Track").Select(t => t.SafePath),
+                        StringComparer.OrdinalIgnoreCase);
 
-                var removedPaths = new List<string>();
-
-                using (var conn = this.factory.GetConnection())
-                {
-                    removedPaths = conn.Table<RemovedTrack>().ToList().Select((t) => t.SafePath).ToList();
+                    // One query for removed tracks (only if needed)
+                    if (ignoreRemovedFiles)
+                    {
+                        removedSafePaths = new HashSet<string>(
+                            conn.Query<RemovedTrack>("SELECT SafePath FROM RemovedTrack").Select(t => t.SafePath),
+                            StringComparer.OrdinalIgnoreCase);
+                    }
+                    else
+                    {
+                        removedSafePaths = null;
+                    }
                 }
 
                 this.newDiskPaths = new List<FolderPathInfo>();
 
                 foreach (FolderPathInfo diskpath in this.allDiskPaths)
                 {
-                    if (!dbPaths.Contains(diskpath.Path.ToSafePath()) && (ignoreRemovedFiles ? !removedPaths.Contains(diskpath.Path.ToSafePath()) : true))
+                    string safePath = diskpath.Path.ToSafePath();
+
+                    if (!dbSafePaths.Contains(safePath))
                     {
-                        this.newDiskPaths.Add(diskpath);
+                        if (removedSafePaths == null || !removedSafePaths.Contains(safePath))
+                        {
+                            this.newDiskPaths.Add(diskpath);
+                        }
                     }
                 }
             });
@@ -442,6 +465,14 @@ namespace Dopamine.Services.Indexing
                 ProgressPercent = 0
             };
 
+            // Pre-build a dictionary of disk metadata keyed by SafePath.
+            // This lets IsTrackOutdated avoid re-stating each file from disk;
+            // we already have DateModifiedTicks from the scan phase.
+            var diskPathDict = this.allDiskPaths.ToDictionary(
+                fp => fp.Path.ToSafePath(),
+                fp => fp,
+                StringComparer.OrdinalIgnoreCase);
+
             await Task.Run(() =>
             {
                 try
@@ -460,7 +491,12 @@ namespace Dopamine.Services.Indexing
                         {
                             try
                             {
-                                if (IndexerUtils.IsTrackOutdated(dbTrack) | dbTrack.NeedsIndexing == 1)
+                                // Use fast overload with pre-scanned disk info when available
+                                bool outdated = diskPathDict.TryGetValue(dbTrack.SafePath, out FolderPathInfo diskInfo)
+                                    ? IndexerUtils.IsTrackOutdated(dbTrack, diskInfo)
+                                    : IndexerUtils.IsTrackOutdated(dbTrack);
+
+                                if (outdated || dbTrack.NeedsIndexing == 1)
                                 {
                                     this.ProcessTrack(dbTrack, conn);
                                     conn.Update(dbTrack);
@@ -514,25 +550,35 @@ namespace Dopamine.Services.Indexing
             {
                 try
                 {
-                    long currentValue = 0;
                     long totalValue = this.newDiskPaths.Count;
-
                     long saveItemCount = IndexerUtils.CalculateSaveItemCount(totalValue);
                     long unsavedItemCount = 0;
                     int lastPercent = 0;
 
+                    // Phase 1: Read file metadata in parallel (CPU/IO bound, fully independent)
+                    // TagLib parsing dominates add time, so parallelizing it gives a major speedup.
+                    var processedTracks = new Track[this.newDiskPaths.Count];
+
+                    Parallel.For(0, this.newDiskPaths.Count, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, i =>
+                    {
+                        FolderPathInfo newDiskPath = this.newDiskPaths[i];
+                        Track diskTrack = Track.CreateDefault(newDiskPath.Path);
+                        this.ProcessTrack(diskTrack, null); // null conn — metadata read only, no DB
+                        processedTracks[i] = diskTrack;
+                    });
+
+                    // Phase 2: Write to SQLite serially (SQLite-NET doesn't support concurrent writes)
                     using (var conn = this.factory.GetConnection())
                     {
                         conn.BeginTransaction();
 
-                        foreach (FolderPathInfo newDiskPath in this.newDiskPaths)
+                        for (int i = 0; i < processedTracks.Length; i++)
                         {
-                            Track diskTrack = Track.CreateDefault(newDiskPath.Path);
+                            Track diskTrack = processedTracks[i];
+                            FolderPathInfo newDiskPath = this.newDiskPaths[i];
 
                             try
                             {
-                                this.ProcessTrack(diskTrack, conn);
-
                                 if (!this.cache.HasCachedTrack(ref diskTrack))
                                 {
                                     conn.Insert(diskTrack);
@@ -543,11 +589,11 @@ namespace Dopamine.Services.Indexing
 
                                 conn.Insert(new FolderTrack(newDiskPath.FolderId, diskTrack.TrackID));
 
-                                // Intermediate save to the database if 20% is reached
+                                // Intermediate commit to avoid holding one massive transaction
                                 if (unsavedItemCount == saveItemCount)
                                 {
                                     unsavedItemCount = 0;
-                                    conn.Commit(); // Intermediate save
+                                    conn.Commit();
                                     conn.BeginTransaction();
                                 }
                             }
@@ -556,14 +602,10 @@ namespace Dopamine.Services.Indexing
                                 LogClient.Error("There was a problem while adding Track with path='{0}'. Exception: {1}", diskTrack.Path, ex.Message);
                             }
 
-                            currentValue += 1;
-
+                            long currentValue = i + 1;
                             int percent = IndexerUtils.CalculatePercent(currentValue, totalValue);
 
-                            // Report progress if at least 1 track is added OR when the progress
-                            // interval has been exceeded OR the maximum has been reached.
                             bool mustReportProgress = numberAddedTracks == 1 || percent >= lastPercent + 5 || percent == 100;
-
                             if (mustReportProgress)
                             {
                                 lastPercent = percent;
@@ -832,31 +874,28 @@ namespace Dopamine.Services.Indexing
 
         private async Task<List<FolderPathInfo>> GetFolderPaths()
         {
-            var allFolderPaths = new List<FolderPathInfo>();
             List<Folder> folders = await this.folderRepository.GetFoldersAsync();
 
-            await Task.Run(() =>
-            {
-                // Recursively get all the files in the collection folders
-                foreach (Folder fol in folders)
-                {
-                    if (Directory.Exists(fol.Path))
-                    {
-                        try
-                        {
-                            // Get all audio files recursively
-                            List<FolderPathInfo> folderPaths = FileOperations.GetValidFolderPaths(fol.FolderID, fol.Path, FileFormats.SupportedMediaExtensions);
-                            allFolderPaths.AddRange(folderPaths);
-                        }
-                        catch (Exception ex)
-                        {
-                            LogClient.Error("Error while recursively getting files/folders for directory={0}. Exception: {1}", fol.Path, ex.Message);
-                        }
-                    }
-                }
-            });
+            // Scan each root folder in parallel — independent I/O operations
+            var allBags = new ConcurrentBag<FolderPathInfo>();
 
-            return allFolderPaths;
+            await Task.WhenAll(folders
+                .Where(fol => Directory.Exists(fol.Path))
+                .Select(fol => Task.Run(() =>
+                {
+                    try
+                    {
+                        var folderPaths = FileOperations.GetValidFolderPaths(fol.FolderID, fol.Path, FileFormats.SupportedMediaExtensions);
+                        foreach (var fp in folderPaths)
+                            allBags.Add(fp);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogClient.Error("Error while recursively getting files/folders for directory={0}. Exception: {1}", fol.Path, ex.Message);
+                    }
+                })));
+
+            return allBags.ToList();
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Digimezzo.Foundation.Core.Settings;
+using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Settings;
 using Dopamine.Core.Prism;
 using Dopamine.Data;
 using Dopamine.Services.Entities;
@@ -101,7 +102,14 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
 
         private async void FoldersService_FoldersChanged(object sender, EventArgs e)
         {
-            await this.FillListsAsync();
+            try
+            {
+                await this.FillListsAsync();
+            }
+            catch (Exception ex)
+            {
+                LogClient.Error("Could not fill folder lists. Exception: {0}", ex.Message);
+            }
         }
 
         private void ClearFolders()
@@ -115,7 +123,9 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
         {
             this.Folders = new ObservableCollection<FolderViewModel>(await this.foldersService.GetFoldersAsync());
             FolderViewModel proposedSelectedFolder = await this.foldersService.GetSelectedFolderAsync();
-            this.selectedFolder = this.Folders.Where(x => x.Equals(proposedSelectedFolder)).FirstOrDefault();
+            this.selectedFolder = proposedSelectedFolder != null
+                ? this.Folders.FirstOrDefault(x => x.Equals(proposedSelectedFolder))
+                : this.Folders.FirstOrDefault();
             this.RaisePropertyChanged(nameof(this.SelectedFolder));
         }
 

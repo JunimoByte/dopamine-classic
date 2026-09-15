@@ -3,7 +3,6 @@ using Digimezzo.Foundation.Core.Settings;
 using Dopamine.Services.Playback;
 using Microsoft.Win32;
 using System;
-using System.Management;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 
@@ -12,9 +11,12 @@ namespace Dopamine.Services.WindowsIntegration
     public class WindowsIntegrationService : IWindowsIntegrationService
     {
         private IPlaybackService playbackService;
-        private ManagementEventWatcher tabletModeWatcher;
-        private ManagementEventWatcher systemUsesLightThemeWatcher;
         private bool isStartedFromExplorer;
+
+        private bool isMonitoringTabletMode;
+        private bool isMonitoringSystemUsesLightTheme;
+        private bool lastTabletMode;
+        private bool lastSystemUsesLightTheme;
     
         public WindowsIntegrationService(IPlaybackService playbackService)
         {
@@ -42,6 +44,34 @@ namespace Dopamine.Services.WindowsIntegration
                     }
                 }
             };
+            
+            SystemEvents.UserPreferenceChanged += SystemEvents_UserPreferenceChanged;
+        }
+
+        private void SystemEvents_UserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
+        {
+            if (e.Category == UserPreferenceCategory.General)
+            {
+                if (this.isMonitoringTabletMode)
+                {
+                    bool currentTabletMode = this.IsTabletModeEnabled;
+                    if (currentTabletMode != this.lastTabletMode)
+                    {
+                        this.lastTabletMode = currentTabletMode;
+                        this.TabletModeChanged?.Invoke(this, new EventArgs());
+                    }
+                }
+
+                if (this.isMonitoringSystemUsesLightTheme)
+                {
+                    bool currentTheme = this.IsSystemUsingLightTheme;
+                    if (currentTheme != this.lastSystemUsesLightTheme)
+                    {
+                        this.lastSystemUsesLightTheme = currentTheme;
+                        this.SystemUsesLightThemeChanged?.Invoke(this, new EventArgs());
+                    }
+                }
+            }
         }
 
         private void EnableSleepPrevention()
@@ -135,82 +165,24 @@ namespace Dopamine.Services.WindowsIntegration
 
         public void StartMonitoringTabletMode()
         {
-            try
-            {
-                var currentUser = WindowsIdentity.GetCurrent();
-                if (currentUser != null && currentUser.User != null)
-                {
-                    var wqlEventQuery = new EventQuery(string.Format(@"SELECT * FROM RegistryValueChangeEvent WHERE Hive='HKEY_USERS' AND KeyPath='{0}\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ImmersiveShell' AND ValueName='TabletMode'", currentUser.User.Value));
-                    this.tabletModeWatcher = new ManagementEventWatcher(wqlEventQuery);
-                    this.tabletModeWatcher.EventArrived += this.TabletModeWatcher_EventArrived;
-                    this.tabletModeWatcher.Start();
-                }
-            }
-            catch (Exception ex)
-            {
-                LogClient.Error("Could not start monitoring tablet mode. Exception: {0}", ex.Message);
-            }
+            this.isMonitoringTabletMode = true;
+            this.lastTabletMode = this.IsTabletModeEnabled;
         }
 
         public void StopMonitoringTabletMode()
         {
-            try
-            {
-                if (this.tabletModeWatcher != null)
-                {
-                    this.tabletModeWatcher.Stop();
-                    this.tabletModeWatcher.EventArrived -= this.TabletModeWatcher_EventArrived;
-                }
-            }
-            catch (Exception ex)
-            {
-                LogClient.Error("Could not stop monitoring tablet mode. Exception: {0}", ex.Message);
-            }
+            this.isMonitoringTabletMode = false;
         }
 
         public void StartMonitoringSystemUsesLightTheme()
         {
-            try
-            {
-                var currentUser = WindowsIdentity.GetCurrent();
-                if (currentUser != null && currentUser.User != null)
-                {
-                    var wqlEventQuery = new EventQuery(string.Format(@"SELECT * FROM RegistryValueChangeEvent WHERE Hive='HKEY_USERS' AND KeyPath='{0}\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize' AND ValueName='SystemUsesLightTheme'", currentUser.User.Value));
-                    this.systemUsesLightThemeWatcher = new ManagementEventWatcher(wqlEventQuery);
-                    this.systemUsesLightThemeWatcher.EventArrived += this.AppsUseLightThemeWatcher_EventArrived;
-                    this.systemUsesLightThemeWatcher.Start();
-                }
-            }
-            catch (Exception ex)
-            {
-                LogClient.Error("Could not start monitoring system uses light theme. Exception: {0}", ex.Message);
-            }
+            this.isMonitoringSystemUsesLightTheme = true;
+            this.lastSystemUsesLightTheme = this.IsSystemUsingLightTheme;
         }
 
         public void StopMonitoringSystemUsesLightTheme()
         {
-            try
-            {
-                if (this.systemUsesLightThemeWatcher != null)
-                {
-                    this.systemUsesLightThemeWatcher.Stop();
-                    this.systemUsesLightThemeWatcher.EventArrived -= this.AppsUseLightThemeWatcher_EventArrived;
-                }
-            }
-            catch (Exception ex)
-            {
-                LogClient.Error("Could not stop monitoring system uses light theme. Exception: {0}", ex.Message);
-            }
-        }
-
-        private void TabletModeWatcher_EventArrived(object sender, EventArrivedEventArgs e)
-        {
-            this.TabletModeChanged(this, new EventArgs());
-        }
-
-        private void AppsUseLightThemeWatcher_EventArrived(object sender, EventArrivedEventArgs e)
-        {
-            this.SystemUsesLightThemeChanged(this, new EventArgs());
+            this.isMonitoringSystemUsesLightTheme = false;
         }
 
         private void DisableSleep()

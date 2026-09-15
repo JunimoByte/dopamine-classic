@@ -1,10 +1,11 @@
-﻿using Digimezzo.Foundation.Core.Utils;
+using Digimezzo.Foundation.Core.Utils;
 using Digimezzo.Foundation.Core.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Dopamine.Core.IO
 {
@@ -12,107 +13,50 @@ namespace Dopamine.Core.IO
     {
         public static List<FolderPathInfo> GetValidFolderPaths(long folderId, string directory, string[] validExtensions)
         {
-            var folderPaths = new List<FolderPathInfo>();
+            var folderPaths = new ConcurrentBag<FolderPathInfo>();
 
             try
             {
-                var files = new List<string>();
-                var exceptions = new ConcurrentQueue<Exception>();
-
-                TryDirectoryRecursiveGetFiles(directory, files, exceptions);
-
-                foreach (Exception ex in exceptions)
+                // Use OS-native EnumerateFiles with AllDirectories — much faster than
+                // manual recursion because it leverages OS file-system APIs directly
+                // and avoids C# stack recursion overhead.
+                IEnumerable<string> files;
+                try
                 {
-                    LogClient.Error("Error occurred while getting files recursively. Exception: {0}", ex.Message);
+                    files = Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories);
+                }
+                catch (Exception ex)
+                {
+                    LogClient.Error("Error enumerating files in directory '{0}'. Exception: {1}", directory, ex.Message);
+                    return new List<FolderPathInfo>();
                 }
 
-                foreach (string file in files)
+                // HashSet for O(1) extension lookup instead of Array.Contains O(n)
+                var validExtSet = new HashSet<string>(validExtensions, StringComparer.OrdinalIgnoreCase);
+
+                // Parallelize the per-file stat calls (DateModifiedTicks) since each
+                // is an independent I/O call and these dominate scan time on large libraries
+                Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, file =>
                 {
                     try
                     {
-                        // Only add the file if they have a valid extension
-                        if (validExtensions.Contains(Path.GetExtension(file.ToLower())))
+                        if (validExtSet.Contains(Path.GetExtension(file)))
                         {
                             folderPaths.Add(new FolderPathInfo(folderId, file, FileUtils.DateModifiedTicks(file)));
                         }
                     }
                     catch (Exception ex)
                     {
-                        LogClient.Error("Error occurred while getting folder path for file '{0}'. Exception: {1}", file, ex.Message);
+                        LogClient.Error("Error getting folder path info for file '{0}'. Exception: {1}", file, ex.Message);
                     }
-                }
+                });
             }
             catch (Exception ex)
             {
-                LogClient.Error("Unexpected error occurred while getting folder paths. Exception: {0}", ex.Message);
+                LogClient.Error("Unexpected error while getting folder paths for directory '{0}'. Exception: {1}", directory, ex.Message);
             }
 
-            return folderPaths;
-        }
-
-        private static void TryDirectoryRecursiveGetFiles(string path, List<String> files, ConcurrentQueue<Exception> exceptions)
-        {
-            try
-            {
-                // Process the list of files found in the directory.
-                string[] fileEntries = null;
-
-                try
-                {
-                    fileEntries = Directory.GetFiles(path);
-                }
-                catch (Exception ex)
-                {
-                    exceptions.Enqueue(ex);
-                }
-
-                if (fileEntries != null && fileEntries.Count() > 0)
-                {
-                    foreach (string fileName in fileEntries)
-                    {
-                        try
-                        {
-                            files.Add(fileName);
-                        }
-                        catch (Exception ex)
-                        {
-                            exceptions.Enqueue(ex);
-                        }
-                    }
-                }
-
-                // Recurse into subdirectories of this directory. 
-                string[] subdirectoryEntries = null;
-
-                try
-                {
-                    subdirectoryEntries = Directory.GetDirectories(path);
-                }
-                catch (Exception ex)
-                {
-                    exceptions.Enqueue(ex);
-                }
-
-                if (subdirectoryEntries != null && subdirectoryEntries.Count() > 0)
-                {
-
-                    foreach (string subdirectory in subdirectoryEntries)
-                    {
-                        try
-                        {
-                            TryDirectoryRecursiveGetFiles(subdirectory, files, exceptions);
-                        }
-                        catch (Exception ex)
-                        {
-                            exceptions.Enqueue(ex);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                exceptions.Enqueue(ex);
-            }
+            return folderPaths.ToList();
         }
 
         public static bool IsDirectoryContentAccessible(string directoryPath)
@@ -136,3 +80,4 @@ namespace Dopamine.Core.IO
         }
     }
 }
+

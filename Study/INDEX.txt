@@ -1,0 +1,73 @@
+================================================================================
+DOPAMINE (REVERB) - KNOWLEDGE BASE INDEX
+================================================================================
+
+This folder (/Study) contains a comprehensive technical knowledge base explaining
+the entire architecture, components, data flows, and services of Dopamine.
+
+MODULE DIRECTORY:
+--------------------------------------------------------------------------------
+1. 01_ARCHITECTURE_AND_LIFECYCLE.md
+   - Tech stack: .NET 4.6.1+, WPF, Prism + DryIoc, CSCore, SQLite.
+   - Startup sequence: Single-instance Mutex, CLI IPC forwarding, OOBE flow.
+   - Dependency injection & service locator wiring in App.xaml.cs.
+   - Graceful shutdown, queue serialization & database flushing.
+
+2. 02_AUDIO_ENGINE_AND_DSP.md
+   - CSCore audio player pipeline and audio graph in CSCorePlayer.cs.
+   - Decoders: FfmpegDecoder stream wrapper + MediaFoundationDecoder for WMA.
+   - Resampling rule: SampleRate < 32000Hz upsampled for 16kHz EQ band filter.
+   - 10-Band BiQuad Equalizer (31Hz - 16kHz) with customizable gains (-20dB..+20dB).
+   - SingleBlockNotificationStream FFT tap for 60FPS spectrum visualizers.
+   - Output drivers: WasapiOut (Shared/Exclusive) & DirectSoundOut fallback.
+
+3. 03_PLAYBACK_AND_QUEUE_MANAGEMENT.md
+   - PlaybackService state coordinator & event bus.
+   - QueueManager index indirection: original List<Track> vs List<int> playbackOrder.
+   - Non-disruptive shuffle algorithm (current track pinned to index 0).
+   - Loop modes: None, All, One.
+   - Listening statistics: Play count (50% or 30s) and skip count tracking.
+   - Queue persistence to SQLite across restarts via QueuedTrack table.
+
+4. 04_DATABASE_AND_DATA_LAYER.md
+   - SQLite architecture and connection pooling (ISQLiteConnectionFactory).
+   - Database schema: Folder, Track, AlbumArtwork, QueuedTrack, TrackStatistic,
+     BlacklistTrack, Configuration.
+   - The 'SafePath' pattern for case-insensitive/unicode Windows path index matching.
+   - DbMigrator sequential migration system (v1 through v27).
+   - Repositories breakdown and query patterns.
+
+5. 05_INDEXING_METADATA_AND_CACHE.md
+   - IndexingService background workflow and incremental library scanning.
+   - GentleFolderWatcher file system monitoring & event debouncing.
+   - TagLib metadata parsing and ID3v2.3 multi-value tag patcher.
+   - AlbumKey generation logic for grouping split albums.
+   - Artwork extraction hierarchy (Embedded -> Folder -> Online) and hash cache.
+
+6. 06_UI_MVVM_AND_MODES.md
+   - WPF View/ViewModel structure and Prism RegionManager navigation.
+   - 4 Player Modes: Full Player, Cover Player, Micro Player, Nano Player.
+   - SlidingContentControl animated slide transitions between tabs.
+   - Now Playing views: Showcase (spectrum & blur), Lyrics, Artist Info, Queue.
+   - Dynamic theming: Light/Dark, Windows DWM color sync, Album Art color extraction.
+
+7. 07_EXTERNAL_INTEGRATIONS_AND_SERVICES.md
+   - WCF Named Pipe API: IExternalControlServer & IFftDataServer (Rainmeter/Widgets).
+   - Windows 10 SMTC (System Media Transport Controls) and Toast notifications.
+   - Legacy Win32 notification popup fallback for older Windows versions.
+   - Online services: Last.fm scrobbler & bio API, multi-source lyrics scrapers,
+     Discord Rich Presence, and Win32 sleep prevention hooks.
+
+8. 08_TRAY_CONTROLS_AND_TRACK_TRANSITIONS.md
+   - System Tray preview popup (TrayControls.xaml): Taskbar alignment geometry,
+     Aero/acrylic blur, and outside-click auto dismissal (Window_Deactivated).
+   - Embedded controls: Artwork, metadata, volume, seekbar, shuffle, previous,
+     play/pause, next, loop cycle (None -> All -> One), and "Show Dopamine".
+   - Track decision engine:
+     * Back 3-second rule: restarts song if >3s into playback, else goes back.
+     * Manual Next override: breaks out of LoopMode.One into LoopMode.All.
+     * Duplicate track collision handling: skips consecutive duplicate file paths.
+     * Shuffled queue wrap-around: controlled by 'LoopWhenShuffle' setting.
+     * Automatic progression: updates PlayCount statistics and transparently skips
+       over blacklisted songs with queue-overflow loop protection.
+================================================================================

@@ -16,3 +16,10 @@
                                     SlideInFrom="{Binding SlideInFrom}" SlideInTo="0" x:Name="SettingsRegion" 
                                     prism:RegionManager.RegionName="{x:Static cp:RegionNames.SettingsRegion}"/>
 </UserControl>
+
+
+
+
+
+
+

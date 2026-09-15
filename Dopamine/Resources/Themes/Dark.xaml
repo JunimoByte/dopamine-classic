@@ -28,6 +28,8 @@
     <Color x:Key="Color_DarkGrey9">#666666</Color>
     
     <!-- Brushes -->
+    <SolidColorBrush x:Key="Brush_ContextMenuBackground" Color="{DynamicResource Color_DarkGrey5}"/>
+    <SolidColorBrush x:Key="Brush_ContextMenuText" Color="{DynamicResource Color_SoftWhite}"/>
     <SolidColorBrush x:Key="Brush_PrimaryText" Color="{DynamicResource Color_SoftWhite}"/>
     <SolidColorBrush x:Key="Brush_SecondaryText" Color="{DynamicResource Color_DarkGrey8}"/>
     <SolidColorBrush x:Key="Brush_WindowHeaderBackground" Color="{StaticResource Color_DarkGrey1}"/>
@@ -72,3 +74,5 @@
         <GradientStop Color="{DynamicResource Color_DarkGrey1Invisible}" Offset="1.0"/>
     </LinearGradientBrush>
 </ResourceDictionary>
+
+

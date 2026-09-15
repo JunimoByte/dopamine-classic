@@ -53,8 +53,26 @@ namespace Dopamine.Views.Common
         public WindowControls()
         {
             InitializeComponent();
-
             this.shellService = ServiceLocator.Current.GetInstance<IShellService>();
+            
+            this.Loaded += WindowControls_Loaded;
+            this.Unloaded += WindowControls_Unloaded;
+        }
+
+        private void WindowControls_Loaded(object sender, RoutedEventArgs e)
+        {
+            this.HandleWindowStateChange(this.shellService.WindowState);
+            this.shellService.WindowStateChanged += ShellService_WindowStateChanged;
+        }
+
+        private void WindowControls_Unloaded(object sender, RoutedEventArgs e)
+        {
+            this.shellService.WindowStateChanged -= ShellService_WindowStateChanged;
+        }
+
+        private void ShellService_WindowStateChanged(object sender, WindowStateChangedEventArgs e)
+        {
+            this.HandleWindowStateChange(e.WindowState);
         }
 
         public override void OnApplyTemplate()
@@ -77,10 +95,6 @@ namespace Dopamine.Views.Common
                 this.PART_Restore.SetResourceReference(StyleProperty, "WindowButton");
                 this.PART_Close.SetResourceReference(StyleProperty, "WindowButton");
             }
-
-            this.HandleWindowStateChange(this.shellService.WindowState);
-
-            this.shellService.WindowStateChanged += (_, e) => this.HandleWindowStateChange(e.WindowState);
         }
 
         public void HandleWindowStateChange(WindowState state)
@@ -90,3 +104,4 @@ namespace Dopamine.Views.Common
         }
     }
 }
+

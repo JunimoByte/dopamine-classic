@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Settings;
 using Digimezzo.Foundation.Core.Utils;
 using Dopamine.Core.Base;
@@ -106,24 +106,20 @@ namespace Dopamine.Services.Cache
                 return string.Empty;
             }
 
-            string artworkID = this.GetAlbumCacheArtworkId();
-
-            string temporaryFilePath = await this.DownloadFileToTemporaryCacheAsync(uriString);
-
-            if (!string.IsNullOrEmpty(temporaryFilePath))
+            try
             {
-                try
+                using (var client = new System.Net.Http.HttpClient())
                 {
-                    System.IO.File.Copy(temporaryFilePath, Path.Combine(this.coverArtCacheFolderPath, artworkID + ".jpg"), true);
-                }
-                catch (Exception ex)
-                {
-                    LogClient.Error("Could not cache Uri artwork. Exception: {0}", ex.Message);
-                    artworkID = string.Empty;
+                    byte[] imageData = await client.GetByteArrayAsync(new Uri(uriString));
+                    // Pass to the byte[] overload which encodes to 80% JPG, reducing quality/size
+                    return await CacheArtworkAsync(imageData);
                 }
             }
-
-            return artworkID;
+            catch (Exception ex)
+            {
+                LogClient.Error("Could not cache Uri artwork. Exception: {0}", ex.Message);
+                return string.Empty;
+            }
         }
 
         public string GetCachedArtworkPath(string artworkID)
@@ -151,9 +147,14 @@ namespace Dopamine.Services.Cache
 
                 string cachedFilePath = Path.Combine(this.temporaryCacheFolderPath, Guid.NewGuid().ToString());
 
-                using (var client = new WebClient())
+                using (var client = new System.Net.Http.HttpClient())
                 {
-                    await Task.Run(() => client.DownloadFile(uri, cachedFilePath));
+                    var response = await client.GetAsync(uri);
+                    response.EnsureSuccessStatusCode();
+                    using (var fs = new FileStream(cachedFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+                    {
+                        await response.Content.CopyToAsync(fs);
+                    }
                 }
 
                 if (!System.IO.File.Exists(cachedFilePath)) cachedFilePath = string.Empty;

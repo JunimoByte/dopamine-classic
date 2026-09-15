@@ -56,7 +56,7 @@ namespace Dopamine.Data.Repositories
                       WHERE f.ShowInCollection = 1 AND t.IndexingSuccess = 1";
         }
 
-        public async Task<List<Track>> GetTracksAsync(IList<string> paths)
+                public async Task<List<Track>> GetTracksAsync(IList<string> paths)
         {
             var tracks = new List<Track>();
 
@@ -69,8 +69,15 @@ namespace Dopamine.Data.Repositories
                         try
                         {
                             IList<string> safePaths = paths.Select((p) => p.ToSafePath()).ToList();
-
-                            tracks = conn.Query<Track>($"{this.SelectVisibleTracksQuery()} AND {DataUtils.CreateInClause("t.SafePath", safePaths)};");
+                            
+                            // SQLite can fail if the IN clause is too large. We chunk into sizes of 500.
+                            int chunkSize = 500;
+                            for (int i = 0; i < safePaths.Count; i += chunkSize)
+                            {
+                                var chunk = safePaths.Skip(i).Take(chunkSize).ToList();
+                                var chunkTracks = conn.Query<Track>($"{this.SelectVisibleTracksQuery()} AND {DataUtils.CreateInClause("t.SafePath", chunk)};");
+                                tracks.AddRange(chunkTracks);
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -206,7 +213,7 @@ namespace Dopamine.Data.Repositories
             return tracks;
         }
 
-        public async Task<List<Track>> GetAlbumTracksAsync(IList<string> albumKeys)
+                public async Task<List<Track>> GetAlbumTracksAsync(IList<string> albumKeys)
         {
             var tracks = new List<Track>();
 
@@ -218,7 +225,13 @@ namespace Dopamine.Data.Repositories
                     {
                         try
                         {
-                            tracks = conn.Query<Track>(this.SelectVisibleTracksQuery() + $" AND {DataUtils.CreateInClause("t.AlbumKey", albumKeys)};");
+                            int chunkSize = 500;
+                            for (int i = 0; i < albumKeys.Count; i += chunkSize)
+                            {
+                                var chunk = albumKeys.Skip(i).Take(chunkSize).ToList();
+                                var chunkTracks = conn.Query<Track>($"{this.SelectVisibleTracksQuery()} AND {DataUtils.CreateInClause("t.AlbumKey", chunk)};");
+                                tracks.AddRange(chunkTracks);
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -901,3 +914,6 @@ namespace Dopamine.Data.Repositories
         }
     }
 }
+
+
+

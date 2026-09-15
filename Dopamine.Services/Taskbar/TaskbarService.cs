@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Settings;
 using Dopamine.Core.Base;
 using Dopamine.Services.Playback;
@@ -84,13 +84,16 @@ namespace Dopamine.Services.Taskbar
 
             this.playbackService.PlaybackSuccess += (_, __) =>
             {
-                if (!string.IsNullOrWhiteSpace(this.playbackService.CurrentTrack.ArtistName) && !string.IsNullOrWhiteSpace(this.playbackService.CurrentTrack.TrackTitle))
+                if (this.playbackService.CurrentTrack != null)
                 {
-                    this.Description = this.playbackService.CurrentTrack.ArtistName + " - " + this.playbackService.CurrentTrack.TrackTitle;
-                }
-                else
-                {
-                    this.Description = this.playbackService.CurrentTrack.FileName;
+                    if (!string.IsNullOrWhiteSpace(this.playbackService.CurrentTrack.ArtistName) && !string.IsNullOrWhiteSpace(this.playbackService.CurrentTrack.TrackTitle))
+                    {
+                        this.Description = this.playbackService.CurrentTrack.ArtistName + " - " + this.playbackService.CurrentTrack.TrackTitle;
+                    }
+                    else
+                    {
+                        this.Description = this.playbackService.CurrentTrack.FileName;
+                    }
                 }
 
                 this.SetTaskbarProgressState(SettingsClient.Get<bool>("Playback", "ShowProgressInTaskbar"), this.playbackService.IsPlaying);

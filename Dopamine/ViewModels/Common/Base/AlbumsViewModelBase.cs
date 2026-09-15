@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Utils;
 using Dopamine.Core.Base;
 using Dopamine.Core.Extensions;
@@ -178,10 +178,7 @@ namespace Dopamine.ViewModels.Common.Base
 
         public async Task LoadAlbumArtworkAsync(int delayMilliSeconds)
         {
-            await Task.Delay(delayMilliSeconds);
-
             IList<AlbumArtwork> allAlbumArtwork = await this.albumArtworkRepository.GetAlbumArtworkAsync();
-
             await this.SetAlbumArtwork(allAlbumArtwork);
         }
 
@@ -194,31 +191,33 @@ namespace Dopamine.ViewModels.Common.Base
 
         private async Task SetAlbumArtwork(IList<AlbumArtwork> allAlbumArtwork, IList<string> albumsKeys = null)
         {
-            if (this.albums != null && this.albums.Count > 0)
-            {
-                await Task.Run(() =>
-                {
-                    foreach (AlbumViewModel alb in this.albums)
-                    {
-                        try
-                        {
-                            if (allAlbumArtwork != null && allAlbumArtwork.Count > 0 && albumsKeys != null ? albumsKeys.Contains(alb.AlbumKey) : true)
-                            {
-                                AlbumArtwork albumArtwork = allAlbumArtwork.Where(a => a.AlbumKey.Equals(alb.AlbumKey)).FirstOrDefault();
+            if (this.albums == null || this.albums.Count == 0) return;
 
-                                if (albumArtwork != null)
-                                {
-                                    alb.ArtworkPath = this.cacheService.GetCachedArtworkPath(albumArtwork.ArtworkID);
-                                }
+            await Task.Run(() =>
+            {
+                foreach (AlbumViewModel alb in this.albums)
+                {
+                    try
+                    {
+                        bool shouldUpdate = allAlbumArtwork != null && allAlbumArtwork.Count > 0 &&
+                                            (albumsKeys != null ? albumsKeys.Contains(alb.AlbumKey) : true);
+
+                        if (shouldUpdate)
+                        {
+                            AlbumArtwork albumArtwork = allAlbumArtwork.FirstOrDefault(a => a.AlbumKey.Equals(alb.AlbumKey));
+                            if (albumArtwork != null)
+                            {
+                                string path = this.cacheService.GetCachedArtworkPath(albumArtwork.ArtworkID);
+                                alb.ArtworkPath = path;
                             }
                         }
-                        catch (Exception ex)
-                        {
-                            LogClient.Error("Error while refreshing artwork for Album {0}/{1}. Exception: {2}", alb.AlbumTitle, alb.AlbumArtist, ex.Message);
-                        }
                     }
-                });
-            }
+                    catch (Exception ex)
+                    {
+                        LogClient.Error("Error while refreshing artwork for Album {0}/{1}. Exception: {2}", alb.AlbumTitle, alb.AlbumArtist, ex.Message);
+                    }
+                }
+            });
         }
 
         private void EditSelectedAlbum()

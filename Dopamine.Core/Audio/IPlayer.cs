@@ -1,4 +1,4 @@
-﻿using Dopamine.Core.Enums;
+using Dopamine.Core.Enums;
 using System;
 using System.Collections.Generic;
 
@@ -45,6 +45,8 @@ namespace Dopamine.Core.Audio
         void ApplyFilter(double[] filterValues);
 
         ISpectrumPlayer GetWrapperSpectrumPlayer(SpectrumChannel channel);
+
+        void ClearSpectrumPlayers();
 
         void SwitchAudioDevice(AudioDevice audioDevice);
 

@@ -9,6 +9,9 @@ namespace Dopamine.Controls
 {
     public class ScalingTextBlock : TextBlock
     {
+        private DependencyPropertyDescriptor dp;
+        private EventHandler textChangedHandler;
+
         public double MinFontSize
         {
             get { return Convert.ToDouble(GetValue(MinFontSizeProperty)); }
@@ -32,24 +35,32 @@ namespace Dopamine.Controls
         protected override void OnInitialized(EventArgs e)
         {
             base.OnInitialized(e);
-            this.SetFontSize();
-
-            // TextBlock doesn't have a TexChanged event. This adds possibility to detect that the Text Property has changed.
-            // Because there is a limited amount of these TextBlocks in the application, this DependencyPropertyDescriptor should
-            // not cause any memory leaks.
-            DependencyPropertyDescriptor dp = DependencyPropertyDescriptor.FromProperty(TextBlock.TextProperty, typeof(TextBlock));
-
-            dp.AddValueChanged(this, (object a, EventArgs b) =>
-            {
-                this.SetFontSize();
-            });
+            
+            this.dp = DependencyPropertyDescriptor.FromProperty(TextBlock.TextProperty, typeof(TextBlock));
+            this.textChangedHandler = (object sender, EventArgs args) => this.SetFontSize();
 
             this.Loaded += ScalingTextBlock_Loaded;
+            this.Unloaded += ScalingTextBlock_Unloaded;
         }
 
         private void ScalingTextBlock_Loaded(object sender, RoutedEventArgs e)
         {
+            // Attach the value changed handler safely here
+            if (this.dp != null && this.textChangedHandler != null)
+            {
+                this.dp.AddValueChanged(this, this.textChangedHandler);
+            }
             this.SetFontSize();
+        }
+
+        private void ScalingTextBlock_Unloaded(object sender, RoutedEventArgs e)
+        {
+            // CRITICAL FIX: We must remove the value changed handler when unloaded to prevent a massive memory leak,
+            // as DependencyPropertyDescriptor holds a strong root reference to this instance forever if not removed!
+            if (this.dp != null && this.textChangedHandler != null)
+            {
+                this.dp.RemoveValueChanged(this, this.textChangedHandler);
+            }
         }
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)

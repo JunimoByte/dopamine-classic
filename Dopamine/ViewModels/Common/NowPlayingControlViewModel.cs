@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Utils;
 using Dopamine.Core.Base;
 using Dopamine.Core.Extensions;
@@ -17,7 +17,7 @@ using System.Threading.Tasks;
 
 namespace Dopamine.ViewModels.Common
 {
-    public class NowPlayingControlViewModel : TracksViewModelBase, IDropTarget
+    public class NowPlayingControlViewModel : TracksViewModelBase, IDropTarget, IDisposable
     {
         private IPlaybackService playbackService;
         private IDialogService dialogService;
@@ -52,8 +52,6 @@ namespace Dopamine.ViewModels.Common
 
         protected async override Task LoadedCommandAsync()
         {
-            // Wait for the UI to slide in
-            await Task.Delay(Constants.NowPlayingListLoadDelay);  
 
             // If there is a queue, get the tracks.
             if (this.playbackService.HasQueue)
@@ -62,13 +60,20 @@ namespace Dopamine.ViewModels.Common
             }
 
             // Listen to queue changes.
-            this.playbackService.QueueChanged += async (_, __) =>
+            this.playbackService.QueueChanged += QueueChangedHandler;
+        }
+
+        private async void QueueChangedHandler(object sender, System.EventArgs e)
+        {
+            if (!this.isDroppingTracks)
             {
-                if (!this.isDroppingTracks)
-                {
-                    await this.GetTracksAsync();
-                }
-            };
+                await this.GetTracksAsync();
+            }
+        }
+
+        public void Dispose()
+        {
+            this.playbackService.QueueChanged -= QueueChangedHandler;
         }
 
         public void DragOver(IDropInfo dropInfo)

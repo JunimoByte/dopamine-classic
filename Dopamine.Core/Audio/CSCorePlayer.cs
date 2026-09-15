@@ -1,4 +1,4 @@
-﻿using CSCore;
+using CSCore;
 using CSCore.CoreAudioAPI;
 using CSCore.DSP;
 using CSCore.Ffmpeg;
@@ -172,13 +172,20 @@ namespace Dopamine.Core.Audio
                 return this.currentTimeBeforePause;
             }
 
-            // Make sure soundOut is not stopped, otherwise we get a NullReferenceException in CSCore.
-            if (this.soundOut != null && this.soundOut.PlaybackState != PlaybackState.Stopped && this.soundOut.WaveSource != null)
+            try
             {
-                return this.soundOut.WaveSource.GetPosition();
-            }
+                ISoundOut currentSoundOut = this.soundOut;
+                if (currentSoundOut != null && currentSoundOut.WaveSource != null)
+                {
+                    return currentSoundOut.WaveSource.GetPosition();
+                }
 
-            return new TimeSpan(0);
+                return TimeSpan.Zero;
+            }
+            catch (Exception)
+            {
+                return TimeSpan.Zero;
+            }
         }
 
         public TimeSpan GetTotalTime()
@@ -188,18 +195,37 @@ namespace Dopamine.Core.Audio
                 return this.totalTimeBeforePause;
             }
 
-            // Make sure soundOut is not stopped, otherwise we get a NullReferenceException in CSCore.
-            if (this.soundOut != null && this.soundOut.PlaybackState != PlaybackState.Stopped && this.soundOut.WaveSource != null)
+            try
             {
-                return this.soundOut.WaveSource.GetLength();
-            }
+                ISoundOut currentSoundOut = this.soundOut;
+                if (currentSoundOut != null && currentSoundOut.WaveSource != null)
+                {
+                    return currentSoundOut.WaveSource.GetLength();
+                }
 
-            return new TimeSpan(0);
+                return TimeSpan.Zero;
+            }
+            catch (Exception)
+            {
+                return TimeSpan.Zero;
+            }
         }
 
         public float GetVolume()
         {
-            return this.soundOut.Volume;
+            try
+            {
+                ISoundOut currentSoundOut = this.soundOut;
+                if (currentSoundOut != null)
+                {
+                    return currentSoundOut.Volume;
+                }
+                return 0f;
+            }
+            catch (Exception)
+            {
+                return 0f;
+            }
         }
 
         public void Pause()
@@ -444,16 +470,19 @@ namespace Dopamine.Core.Audio
 
         private void CloseSoundOut()
         {
-            // soundOut
-            if (this.soundOut != null)
+            try
             {
-                try
+                // soundOut
+                if (this.soundOut != null)
                 {
                     if (this.notificationSource != null)
                     {
-                        foreach (var inputStream in inputStreamList)
+                        lock (inputStreamList)
                         {
-                            this.notificationSource.SingleBlockRead -= inputStream;
+                            foreach (var inputStream in inputStreamList)
+                            {
+                                this.notificationSource.SingleBlockRead -= inputStream;
+                            }
                         }
                     }
 
@@ -469,22 +498,25 @@ namespace Dopamine.Core.Audio
                     this.soundOut.Dispose();
                     this.soundOut = null;
                 }
-                catch (Exception)
-                {
-                    //Swallow
-                }
             }
-
-            // audioStream
-            if (this.audioStream != null)
+            catch (Exception)
             {
-                try
+                //Swallow
+            }
+            finally
+            {
+                // audioStream
+                if (this.audioStream != null)
                 {
-                    this.audioStream.Dispose();
-                }
-                catch (Exception)
-                {
-                    //Swallow
+                    try
+                    {
+                        this.audioStream.Dispose();
+                    }
+                    catch (Exception)
+                    {
+                        // Swallow
+                    }
+                    this.audioStream = null;
                 }
             }
         }
@@ -531,9 +563,27 @@ namespace Dopamine.Core.Audio
             }
         }
 
+        public void ClearSpectrumPlayers()
+        {
+            if (this.notificationSource != null)
+            {
+                lock (inputStreamList)
+                {
+                    foreach (var inputStream in inputStreamList)
+                    {
+                        this.notificationSource.SingleBlockRead -= inputStream;
+                    }
+                    inputStreamList.Clear();
+                }
+            }
+        }
+
         public ISpectrumPlayer GetWrapperSpectrumPlayer(SpectrumChannel channel)
         {
-            return new WrapperSpectrumPlayer(instance, channel, inputStreamList);
+            lock (inputStreamList)
+            {
+                return new WrapperSpectrumPlayer(this, channel, this.inputStreamList);
+            }
         }
 
         public class WrapperSpectrumPlayer : ISpectrumPlayer

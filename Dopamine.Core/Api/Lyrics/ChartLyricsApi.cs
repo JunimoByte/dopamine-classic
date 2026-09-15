@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -8,8 +8,9 @@ namespace Dopamine.Core.Api.Lyrics
 {
     public class ChartLyricsApi : ILyricsApi
     {
-        private const string apiRootFormat = "http://api.chartlyrics.com/apiv1.asmx/SearchLyricDirect?artist={0}&song={1}";
+        private const string apiRootFormat = "https://api.chartlyrics.com/apiv1.asmx/SearchLyricDirect?artist={0}&song={1}";
         private int timeoutSeconds;
+        private static readonly HttpClient httpClient = new HttpClient() { Timeout = TimeSpan.FromSeconds(15) };
 
         public ChartLyricsApi(int timeoutSeconds)
         {
@@ -24,7 +25,7 @@ namespace Dopamine.Core.Api.Lyrics
             {
                 if (!string.IsNullOrEmpty(result))
                 {
-                    // http://www.chartlyrics.com/api.aspx
+                    // https://www.chartlyrics.com/api.aspx
                     var resultXml = XDocument.Parse(result);
 
                     // Select elements by LocalName because ChartLyrics XML has namespace issues
@@ -57,12 +58,14 @@ namespace Dopamine.Core.Api.Lyrics
 
             string result = string.Empty;
 
-            using (var client = new HttpClient())
+            try
             {
-                if (this.timeoutSeconds > 0) client.Timeout = TimeSpan.FromSeconds(this.timeoutSeconds);
-                client.DefaultRequestHeaders.ExpectContinue = false;
-                var response = await client.GetAsync(uri);
+                var response = await httpClient.GetAsync(uri);
                 result = await response.Content.ReadAsStringAsync();
+            }
+            catch
+            {
+                // Ignore exceptions like timeouts or network errors
             }
 
             string lyrics = await ParseResultAsync(result);

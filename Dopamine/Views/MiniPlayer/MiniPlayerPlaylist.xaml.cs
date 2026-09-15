@@ -25,6 +25,8 @@ namespace Dopamine.Views.MiniPlayer
         private double separationSize = 5;
         private bool alignCoverPlayerPlaylistVertically;
         private IntPtr windowHandle;
+        
+        private SubscriptionToken toggleCoverPlayerSub;
 
         public MiniPlayerPlaylist(Windows10BorderlessWindow parent, IPlaybackService playbackService, IRegionManager regionManager, IEventAggregator eventAggregator)
         {
@@ -35,20 +37,33 @@ namespace Dopamine.Views.MiniPlayer
             this.regionManager = regionManager;
             this.eventAggregator = eventAggregator;
 
-            SettingsClient.SettingChanged += (_, e) =>
-            {
-                if (SettingsClient.IsSettingChanged(e, "Appearance", "ShowWindowBorder"))
-                {
-                    this.WindowBorder.BorderThickness = new Thickness((bool)e.Entry.Value ? 1 : 0);
-                }
-            };
+            SettingsClient.SettingChanged += SettingsClient_SettingChanged;
 
-            this.eventAggregator.GetEvent<ToggledCoverPlayerAlignPlaylistVertically>().Subscribe(async alignPlaylistVertically =>
+            this.toggleCoverPlayerSub = this.eventAggregator.GetEvent<ToggledCoverPlayerAlignPlaylistVertically>().Subscribe(async alignPlaylistVertically =>
             {
                 this.alignCoverPlayerPlaylistVertically = alignPlaylistVertically;
                 if (this.IsVisible)
                     await this.SetGeometry();
             });
+            
+            this.Closed += MiniPlayerPlaylist_Closed;
+        }
+
+        private void SettingsClient_SettingChanged(object sender, SettingChangedEventArgs e)
+        {
+            if (SettingsClient.IsSettingChanged(e, "Appearance", "ShowWindowBorder"))
+            {
+                this.WindowBorder.BorderThickness = new Thickness((bool)e.Entry.Value ? 1 : 0);
+            }
+        }
+
+        private void MiniPlayerPlaylist_Closed(object sender, EventArgs e)
+        {
+            SettingsClient.SettingChanged -= SettingsClient_SettingChanged;
+            if (this.toggleCoverPlayerSub != null)
+            {
+                this.eventAggregator.GetEvent<ToggledCoverPlayerAlignPlaylistVertically>().Unsubscribe(this.toggleCoverPlayerSub);
+            }
         }
 
         private async void Parent_LocationChanged(object sender, EventArgs e)

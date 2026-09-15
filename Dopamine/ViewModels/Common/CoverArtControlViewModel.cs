@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.WPF.Controls;
 using Dopamine.Data.Entities;
 using Dopamine.ViewModels;
@@ -67,8 +67,6 @@ namespace Dopamine.ViewModels.Common
 
         protected async virtual void RefreshCoverArtAsync(TrackViewModel track)
         {
-            await Task.Delay(250);
-
             await Task.Run(async () =>
             {
                 this.previousArtwork = this.artwork;

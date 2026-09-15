@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.WPF.Controls;
+using Digimezzo.Foundation.WPF.Controls;
 using System.Threading.Tasks;
 
 namespace Dopamine.Views
@@ -21,9 +21,6 @@ namespace Dopamine.Views
 
             // Migrate
             await initializer.MigrateAsync();
-
-            // Small delay
-            await Task.Delay(1000);
 
             this.Close();
         }

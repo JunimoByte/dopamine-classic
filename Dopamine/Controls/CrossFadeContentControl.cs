@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -19,7 +19,7 @@ namespace Dopamine.Controls
             set { SetValue(DurationProperty, value); }
         }
 
-        public static readonly DependencyProperty DurationProperty = DependencyProperty.Register("Duration", typeof(double), typeof(CrossFadeContentControl), new PropertyMetadata(0.5));
+        public static readonly DependencyProperty DurationProperty = DependencyProperty.Register("Duration", typeof(double), typeof(CrossFadeContentControl), new PropertyMetadata(0.3));
 
         static CrossFadeContentControl()
         {
@@ -69,25 +69,21 @@ namespace Dopamine.Controls
         private void BeginAnimateContentReplacement()
         {
             PART_PaintArea.Opacity = 1.0;
+            PART_MainContent.Opacity = 1.0; // Ensure new content is fully visible underneath
+
+            var cubicEase = new CubicEase() { EasingMode = EasingMode.EaseOut };
 
             var fadeOutAnimation = new DoubleAnimation
             {
                 From = 1.0,
                 To = 0.0,
                 Duration = new Duration(TimeSpan.FromSeconds(this.Duration)),
-                AutoReverse = false
-            };
-
-            var fadeInAnimation = new DoubleAnimation
-            {
-                From = 0.0,
-                To = 1.0,
-                Duration = new Duration(TimeSpan.FromSeconds(this.Duration)),
-                AutoReverse = false
+                AutoReverse = false,
+                EasingFunction = cubicEase
             };
 
             PART_PaintArea.BeginAnimation(OpacityProperty, fadeOutAnimation);
-            PART_MainContent.BeginAnimation(OpacityProperty, fadeInAnimation);
+            PART_MainContent.BeginAnimation(OpacityProperty, null); // Clear any previous fade animation
         }
     }
 }

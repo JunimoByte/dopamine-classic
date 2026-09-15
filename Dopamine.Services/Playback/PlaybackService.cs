@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Settings;
 using Digimezzo.Foundation.Core.Utils;
 using Dopamine.Core.Audio;
@@ -654,18 +654,18 @@ namespace Dopamine.Services.Playback
             {
                 try
                 {
-                    int currentTime = this.GetCurrentTime.Seconds;
-                    int totalTime = this.GetTotalTime.Seconds;
+                    double currentTime = this.GetCurrentTime.TotalSeconds;
+                    double totalTime = this.GetTotalTime.TotalSeconds;
 
                     if (currentTime <= 10)
                     {
-                        // Increase SkipCount
-                        await this.UpdatePlaybackCountersAsync(this.CurrentTrack.Path, false, true);
+                        // Increase SkipCount in the background so it doesn't delay audio playback
+                        _ = Task.Run(() => this.UpdatePlaybackCountersAsync(this.CurrentTrack.Path, false, true));
                     }
                     else
                     {
-                        // Increase PlayCount
-                        await this.UpdatePlaybackCountersAsync(this.CurrentTrack.Path, true, false);
+                        // Increase PlayCount in the background so it doesn't delay audio playback
+                        _ = Task.Run(() => this.UpdatePlaybackCountersAsync(this.CurrentTrack.Path, true, false));
                     }
 
                 }
@@ -1006,7 +1006,7 @@ namespace Dopamine.Services.Playback
             }
             catch (Exception ex)
             {
-                LogClient.Error("Could not pause track with path='{0}'. Exception: {1}", this.CurrentTrack.Path, ex.Message);
+                LogClient.Error("Could not pause track with path='{0}'. Exception: {1}", this.CurrentTrack != null ? this.CurrentTrack.Path : "null", ex.Message);
             }
         }
 
@@ -1031,7 +1031,7 @@ namespace Dopamine.Services.Playback
             }
             catch (Exception ex)
             {
-                LogClient.Error("Could not resume track with path='{0}'. Exception: {1}", this.CurrentTrack.Path, ex.Message);
+                LogClient.Error("Could not resume track with path='{0}'. Exception: {1}", this.CurrentTrack != null ? this.CurrentTrack.Path : "null", ex.Message);
             }
         }
 
@@ -1186,7 +1186,7 @@ namespace Dopamine.Services.Playback
         {
             this.isPlayingPreviousTrack = true;
 
-            if (this.GetCurrentTime.Seconds > 3)
+            if (this.GetCurrentTime.TotalSeconds > 3)
             {
                 // If we're more than 3 seconds into the Track, try to
                 // jump to the beginning of the current Track.
@@ -1275,8 +1275,15 @@ namespace Dopamine.Services.Playback
             // Use our context to trigger the work, because this event is fired on the Player's Playback thread.
             this.context.Post(new SendOrPostCallback((state) =>
             {
-                LogClient.Info("Track interrupted: {0}", this.CurrentTrack.Path);
-                this.Stop();
+                try
+                {
+                    LogClient.Info("Track interrupted: {0}", this.CurrentTrack != null ? this.CurrentTrack.Path : "null");
+                    this.Stop();
+                }
+                catch (Exception ex)
+                {
+                    LogClient.Error("Error in PlaybackInterruptedHandler: {0}", ex.Message);
+                }
             }), null);
         }
 
@@ -1286,9 +1293,19 @@ namespace Dopamine.Services.Playback
             // Use our context to trigger the work, because this event is fired on the Player's Playback thread.
             this.context.Post(new SendOrPostCallback(async (state) =>
             {
-                LogClient.Info("Track finished: {0}", this.CurrentTrack.Path);
-                await this.UpdatePlaybackCountersAsync(this.CurrentTrack.Path, true, false); // Increase PlayCount
-                await this.TryPlayNextAsync(false);
+                try
+                {
+                    if (this.CurrentTrack != null)
+                    {
+                        LogClient.Info("Track finished: {0}", this.CurrentTrack.Path);
+                        _ = Task.Run(() => this.UpdatePlaybackCountersAsync(this.CurrentTrack.Path, true, false)); // Increase PlayCount in background
+                    }
+                    await this.TryPlayNextAsync(false);
+                }
+                catch (Exception ex)
+                {
+                    LogClient.Error("Error in PlaybackFinishedHandler: {0}", ex.Message);
+                }
             }), null);
         }
 

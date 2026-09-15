@@ -27,18 +27,36 @@ namespace Dopamine.Views.Common
             this.playbackService = ServiceLocator.Current.GetInstance<IPlaybackService>();
             this.shellService = ServiceLocator.Current.GetInstance<IShellService>();
 
-            this.playbackService.PlaybackSuccess += (_, __) => this.TryRegisterSpectrumPlayers();
-            this.shellService.WindowStateChanged += (_, __) => this.TryRegisterSpectrumPlayers();
+            this.Loaded += SpectrumAnalyzerControl_Loaded;
+            this.Unloaded += SpectrumAnalyzerControl_Unloaded;
+        }
 
-            SettingsClient.SettingChanged += (_, e) =>
-            {
-                if (SettingsClient.IsSettingChanged(e, "Playback", "ShowSpectrumAnalyzer"))
-                {
-                    this.TryRegisterSpectrumPlayers();
-                }
-            };
-
+        private void SpectrumAnalyzerControl_Loaded(object sender, RoutedEventArgs e)
+        {
+            this.playbackService.PlaybackSuccess += PlaybackService_PlaybackSuccess;
+            this.shellService.WindowStateChanged += ShellService_WindowStateChanged;
+            SettingsClient.SettingChanged += SettingsClient_SettingChanged;
             this.TryRegisterSpectrumPlayers();
+        }
+
+        private void SpectrumAnalyzerControl_Unloaded(object sender, RoutedEventArgs e)
+        {
+            this.playbackService.PlaybackSuccess -= PlaybackService_PlaybackSuccess;
+            this.shellService.WindowStateChanged -= ShellService_WindowStateChanged;
+            SettingsClient.SettingChanged -= SettingsClient_SettingChanged;
+            this.UnregisterSpectrumPlayers();
+        }
+
+        private void PlaybackService_PlaybackSuccess(object sender, System.EventArgs e) => this.TryRegisterSpectrumPlayers();
+        
+        private void ShellService_WindowStateChanged(object sender, System.EventArgs e) => this.TryRegisterSpectrumPlayers();
+        
+        private void SettingsClient_SettingChanged(object sender, SettingChangedEventArgs e)
+        {
+            if (SettingsClient.IsSettingChanged(e, "Playback", "ShowSpectrumAnalyzer"))
+            {
+                this.TryRegisterSpectrumPlayers();
+            }
         }
 
         private void TryRegisterSpectrumPlayers()
@@ -52,34 +70,41 @@ namespace Dopamine.Views.Common
 
             if (!SettingsClient.Get<bool>("Playback", "ShowSpectrumAnalyzer"))
             {
-                // The settings don't allow showing the spectrum analyzer
                 return;
             }
 
             if (this.shellService.WindowState == WindowState.Minimized)
             {
-                // The window state doesn't allow showing the spectrum analyzer
                 return;
             }
 
-            Application.Current.Dispatcher.Invoke(() => this.SpectrumContainer.Visibility = Visibility.Visible);
-
-            if (this.playbackService.Player != null)
+            var player = this.playbackService.Player;
+            Application.Current.Dispatcher.BeginInvoke(new System.Action(() => 
             {
-                Application.Current.Dispatcher.Invoke(() => this.LeftSpectrumAnalyzer.RegisterSoundPlayer(this.playbackService.Player.GetWrapperSpectrumPlayer(SpectrumChannel.Left)));
-                Application.Current.Dispatcher.Invoke(() => this.RightSpectrumAnalyzer.RegisterSoundPlayer(this.playbackService.Player.GetWrapperSpectrumPlayer(SpectrumChannel.Right)));
-            }
+                this.SpectrumContainer.Visibility = Visibility.Visible;
+
+                if (player != null)
+                {
+                    player.ClearSpectrumPlayers();
+                    this.LeftSpectrumAnalyzer.RegisterSoundPlayer(player.GetWrapperSpectrumPlayer(SpectrumChannel.Left));
+                    this.RightSpectrumAnalyzer.RegisterSoundPlayer(player.GetWrapperSpectrumPlayer(SpectrumChannel.Right));
+                }
+            }));
         }
 
         private void UnregisterSpectrumPlayers()
         {
-            Application.Current.Dispatcher.Invoke(() => this.SpectrumContainer.Visibility = Visibility.Collapsed);
-
-            if (this.playbackService.Player != null)
+            var player = this.playbackService.Player;
+            Application.Current.Dispatcher.BeginInvoke(new System.Action(() => 
             {
-                Application.Current.Dispatcher.Invoke(() => this.LeftSpectrumAnalyzer.UnregisterSoundPlayer());
-                Application.Current.Dispatcher.Invoke(() => this.RightSpectrumAnalyzer.UnregisterSoundPlayer());
-            }
+                this.SpectrumContainer.Visibility = Visibility.Collapsed;
+
+                if (player != null)
+                {
+                    this.LeftSpectrumAnalyzer.UnregisterSoundPlayer();
+                    this.RightSpectrumAnalyzer.UnregisterSoundPlayer();
+                }
+            }));
         }
     }
 }

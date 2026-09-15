@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Timers;
 using System.Windows;
@@ -15,7 +15,7 @@ namespace Dopamine.Core.Helpers
 
         public event EventHandler FolderChanged = delegate { };
 
-        public GentleFolderWatcher(string folderPath, bool includeSubdirectories, int intervalMilliSeconds = 200)
+        public GentleFolderWatcher(string folderPath, bool includeSubdirectories, int intervalMilliSeconds = 500)
         {
             // Timer
             this.changeNotificationTimer.Interval = intervalMilliSeconds;

@@ -1,4 +1,4 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:sys="clr-namespace:System;assembly=mscorlib"
     xmlns:base="clr-namespace:Dopamine.Core.Base;assembly=Dopamine.Core">
@@ -62,7 +62,7 @@
                 <ControlTemplate TargetType="{x:Type Thumb}">
                     <Border 
                         Name="Border"
-          CornerRadius="0" 
+          CornerRadius="2" 
           Background="{TemplateBinding Background}"
           BorderBrush="{TemplateBinding BorderBrush}"
           BorderThickness="0" />

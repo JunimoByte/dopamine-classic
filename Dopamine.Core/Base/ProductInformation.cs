@@ -25,14 +25,7 @@ namespace Dopamine.Core.Base
                 Url = "https://github.com/filoe/cscore",
                 LicenseUrl = "https://github.com/filoe/cscore/blob/master/license.md"
             },
-            new ExternalComponent
-            {
-                Name = "DotNetZip",
-                Description =
-                    "A FAST, FREE class library and toolset for manipulating zip files. Use VB, C# or any .NET language to easily create, extract, or update zip files.",
-                Url = "http://dotnetzip.codeplex.com",
-                LicenseUrl = "http://dotnetzip.codeplex.com/license"
-            },
+            
             new ExternalComponent
             {
                 Name = "DryIoc",
@@ -61,13 +54,7 @@ namespace Dopamine.Core.Base
                 Url = "https://github.com/punker76/gong-wpf-dragdrop",
                 LicenseUrl = "https://github.com/punker76/gong-wpf-dragdrop/blob/dev/LICENSE"
             },
-            new ExternalComponent
-            {
-                Name = "Json.NET",
-                Description = "Popular high-performance JSON framework for .NET",
-                Url = "https://github.com/JamesNK/Newtonsoft.Json",
-                LicenseUrl = "https://github.com/JamesNK/Newtonsoft.Json/blob/master/LICENSE.md"
-            },
+            
             new ExternalComponent {
                 Name = "NVorbis",
                 Description = "A .NET library for decoding Xiph.org Vorbis files.",
@@ -117,3 +104,4 @@ namespace Dopamine.Core.Base
         };
     }
 }
+

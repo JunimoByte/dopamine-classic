@@ -3,7 +3,6 @@ using Dopamine.Services.File;
 using Dopamine.Services.JumpList;
 using Dopamine.Services.Playback;
 using Dopamine.Services.Taskbar;
-using Dopamine.Services.Update;
 using Prism.Commands;
 using Prism.Mvvm;
 using System;
@@ -28,7 +27,7 @@ namespace Dopamine.ViewModels
         public DelegateCommand LoadedCommand { get; set; }
 
         public ShellViewModel(IPlaybackService playbackService, ITaskbarService taskbarService, IDialogService dialogService,
-            IJumpListService jumpListService, IFileService fileService, IUpdateService updateService)
+            IJumpListService jumpListService, IFileService fileService)
         {
             this.TaskbarService = taskbarService;
 

@@ -10,3 +10,5 @@
 
     <dc:UWPSliderHorizontalBottom x:Name="ProgressSliderThin" TrackBackground="{DynamicResource Brush_SliderBackground}" ButtonInnerBackground="{DynamicResource Brush_WindowHeaderBackground}" ButtonBackground="{DynamicResource Brush_PrimaryText}" BarBackground="{DynamicResource Brush_Accent}" Value="{Binding ProgressValue,Mode=TwoWay}" Maximum="1" IsHitTestVisible="{Binding CanReportProgress}"/>
 </UserControl>
+
+

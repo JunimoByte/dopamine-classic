@@ -1,6 +1,7 @@
-﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Utils;
 using Dopamine.Core.Base;
+using Dopamine.Core.IO;
 using Dopamine.Data.Entities;
 using Dopamine.Data.Metadata;
 using System;
@@ -19,6 +20,29 @@ namespace Dopamine.Services.Indexing
             else
             {
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Fast overload that uses already-scanned disk metadata to avoid redundant per-track
+        /// file I/O calls during UpdateTracksAsync. Pass the FolderPathInfo from allDiskPaths.
+        /// </summary>
+        public static bool IsTrackOutdated(Track track, FolderPathInfo diskInfo)
+        {
+            // diskInfo already has DateModifiedTicks from the scan pass.
+            // FileSize still requires a FileInfo call but we can get it cheaply here
+            // vs. two separate calls (SizeInBytes + DateModifiedTicks) in the original.
+            try
+            {
+                long diskSize = FileUtils.SizeInBytes(track.Path);
+                return track.FileSize == null
+                    || track.FileSize != diskSize
+                    || track.DateFileModified < diskInfo.DateModifiedTicks;
+            }
+            catch (Exception)
+            {
+                // If stat fails, treat as outdated so it gets re-indexed
+                return true;
             }
         }
 

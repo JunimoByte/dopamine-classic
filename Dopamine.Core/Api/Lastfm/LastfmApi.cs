@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Utils;
+using Digimezzo.Foundation.Core.Utils;
 using Dopamine.Core.Base;
 using System;
 using System.Collections.Generic;
@@ -13,6 +13,8 @@ namespace Dopamine.Core.Api.Lastfm
     {
         private const string apiRootFormat = "{0}://ws.audioscrobbler.com/2.0/?method={1}";
 
+        private static readonly HttpClient httpClient = new HttpClient() { Timeout = TimeSpan.FromSeconds(15) };
+
         /// <summary>
         /// Performs a POST request over HTTP or HTTPS
         /// </summary>
@@ -26,11 +28,14 @@ namespace Dopamine.Core.Api.Lastfm
             string result = string.Empty;
             Uri uri = new Uri(string.Format(apiRootFormat, protocol, method));
 
-            using (var client = new HttpClient())
+            try
             {
-                client.DefaultRequestHeaders.ExpectContinue = false;
-                var response = await client.PostAsync(uri, new FormUrlEncodedContent(parameters));
+                var response = await httpClient.PostAsync(uri, new FormUrlEncodedContent(parameters));
                 result = await response.Content.ReadAsStringAsync();
+            }
+            catch
+            {
+                // Ignored
             }
 
             return result;
@@ -57,11 +62,14 @@ namespace Dopamine.Core.Api.Lastfm
 
             Uri uri = new Uri(string.Format(apiRootFormat + "&{2}", protocol, method, string.Join("&", dataList.ToArray())));
 
-            using (var client = new HttpClient())
+            try
             {
-                client.DefaultRequestHeaders.ExpectContinue = false;
-                var response = await client.GetAsync(uri);
+                var response = await httpClient.GetAsync(uri);
                 result = await response.Content.ReadAsStringAsync();
+            }
+            catch
+            {
+                // Ignored
             }
 
             return result;

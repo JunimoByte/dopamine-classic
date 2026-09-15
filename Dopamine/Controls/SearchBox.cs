@@ -56,6 +56,7 @@ namespace Dopamine.Controls
             if (this.HasText)
             {
                 this.Text = string.Empty;
+                this.Focus();
             }
         }
 
@@ -65,3 +66,4 @@ namespace Dopamine.Controls
         }
     }
 }
+

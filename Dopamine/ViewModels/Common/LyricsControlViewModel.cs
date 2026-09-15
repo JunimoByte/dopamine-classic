@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Settings;
 using Dopamine.Core.Api.Lyrics;
 using Dopamine.Core.Base;
@@ -190,31 +190,31 @@ namespace Dopamine.ViewModels.Common
             if (!this.isNowPlayingPageActive || !this.isNowPlayingLyricsPageActive) return;
             if (track == null) return;
 
-            this.previousTrack = track;
-
-            this.StopHighlighting();
-
-            FileMetadata fmd = await this.metadataService.GetFileMetadataAsync(track.Path);
-
-            await Task.Run(() =>
-            {
-                // If we're in editing mode, delay changing the lyrics.
-                if (this.LyricsViewModel != null && this.LyricsViewModel.IsEditing)
-                {
-                    this.updateLyricsAfterEditingTimer.Start();
-                    return;
-                }
-
-                // No FileMetadata available: clear the lyrics.
-                if (fmd == null)
-                {
-                    this.ClearLyrics(track);
-                    return;
-                }
-            });
-
             try
             {
+                this.previousTrack = track;
+
+                this.StopHighlighting();
+
+                FileMetadata fmd = await this.metadataService.GetFileMetadataAsync(track.Path);
+
+                await Task.Run(() =>
+                {
+                    // If we're in editing mode, delay changing the lyrics.
+                    if (this.LyricsViewModel != null && this.LyricsViewModel.IsEditing)
+                    {
+                        this.updateLyricsAfterEditingTimer.Start();
+                        return;
+                    }
+
+                    // No FileMetadata available: clear the lyrics.
+                    if (fmd == null)
+                    {
+                        this.ClearLyrics(track);
+                        return;
+                    }
+                });
+
                 Lyrics lyrics = null;
                 bool mustDownloadLyrics = false;
 

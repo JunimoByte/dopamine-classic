@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Settings;
 using Digimezzo.Foundation.Core.Utils;
 using Dopamine.Core.Base;
@@ -142,18 +142,29 @@ namespace Dopamine.ViewModels.Common.Base
                 return;
             }
 
-            await Task.Run(() =>
+            try
             {
-                foreach (TrackViewModel vm in this.Tracks)
+                // Create a snapshot of tracks to avoid Collection Modified exceptions
+                // if the UI thread updates the Tracks collection concurrently.
+                IList<TrackViewModel> tracksSnapshot = this.Tracks.ToList();
+
+                await Task.Run(() =>
                 {
-                    if (counters.Select(c => c.SafePath).Contains(vm.Track.SafePath))
+                    foreach (TrackViewModel vm in tracksSnapshot)
                     {
-                        // The UI is only updated if PropertyChanged is fired on the UI thread
-                        PlaybackCounter counter = counters.Where(c => c.SafePath.Equals(vm.Track.SafePath)).FirstOrDefault();
-                        Application.Current.Dispatcher.Invoke(() => vm.UpdateVisibleCounters(counter));
+                        if (counters.Select(c => c.SafePath).Contains(vm.Track.SafePath))
+                        {
+                            // The UI is only updated if PropertyChanged is fired on the UI thread
+                            PlaybackCounter counter = counters.Where(c => c.SafePath.Equals(vm.Track.SafePath)).FirstOrDefault();
+                            Application.Current.Dispatcher.Invoke(() => vm.UpdateVisibleCounters(counter));
+                        }
                     }
-                }
-            });
+                });
+            }
+            catch (Exception ex)
+            {
+                LogClient.Error("Error updating playback counters. Exception: {0}", ex.Message);
+            }
         }
 
         protected void SetTrackOrder(string settingName)
@@ -538,14 +549,16 @@ namespace Dopamine.ViewModels.Common.Base
 
         protected async override Task LoadedCommandAsync()
         {
-            await Task.Delay(Constants.CommonListLoadDelay);  // Wait for the UI to slide in
-            await this.FillListsAsync(); // Fill all the lists
+            // Only load if lists are empty (first visit or after a collection change).
+            // Subsequent tab switches are instant — data stays in memory.
+            if (this.TracksCount == 0)
+                await this.FillListsAsync();
         }
 
-        protected async override Task UnloadedCommandAsync()
+        protected override Task UnloadedCommandAsync()
         {
-            this.EmptyListsAsync(); // Empty all the lists
-            GC.Collect(); // For the memory maniacs
+            // Intentionally empty — keep data alive so returning to this tab is instant.
+            return Task.CompletedTask;
         }
 
         protected override void EditSelectedTracks()

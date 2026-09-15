@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Settings;
 using Dopamine.Core.Api.Lastfm;
 using Dopamine.Data;
@@ -96,6 +96,8 @@ namespace Dopamine.Services.Scrobbling
                 this.trackStartTime = DateTime.Now;
                 this.canScrobble = true;
 
+                if (this.playbackService.CurrentTrack == null) return;
+
                 string artist = !string.IsNullOrEmpty(this.playbackService.CurrentTrack.ArtistName) ? this.playbackService.CurrentTrack.ArtistName : string.Empty;
                 string trackTitle = !string.IsNullOrEmpty(this.playbackService.CurrentTrack.TrackTitle) ? this.playbackService.CurrentTrack.TrackTitle : string.Empty;
                 string albumTitle = !string.IsNullOrEmpty(this.playbackService.CurrentTrack.AlbumTitle) ? this.playbackService.CurrentTrack.AlbumTitle : string.Empty;
@@ -130,6 +132,8 @@ namespace Dopamine.Services.Scrobbling
                 // When is a scrobble a scrobble?
                 // - The track must be longer than 30 seconds
                 // - And the track has been played for at least half its duration, or for 4 minutes (whichever occurs earlier)
+                if (this.playbackService.CurrentTrack == null) return;
+
                 string artist = !string.IsNullOrEmpty(this.playbackService.CurrentTrack.ArtistName) ? this.playbackService.CurrentTrack.ArtistName : string.Empty;
                 string trackTitle = !string.IsNullOrEmpty(this.playbackService.CurrentTrack.TrackTitle) ? this.playbackService.CurrentTrack.TrackTitle : string.Empty;
                 string albumTitle = !string.IsNullOrEmpty(this.playbackService.CurrentTrack.AlbumTitle) ? this.playbackService.CurrentTrack.AlbumTitle : string.Empty;

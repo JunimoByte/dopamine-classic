@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Windows;
 using Digimezzo.Foundation.Core.Utils;
 
@@ -36,10 +36,10 @@ namespace Dopamine.Core.Base
         public static double CoverLargeSize = 180;
         public static double TrackCoverSize = 40;
 
-        // We're forcing PathToImageConverter to create thumbnails that are 2.5 larger than what will
-        // be displayed at Windows Desktop scaling of 100%. That way, when the Windows Desktop scaling
-        // is set to 250%, images won't need to be upscaled by Windows and they'll remain sharp.
-        public static readonly double CoverUpscaleFactor = 2.5;
+        // Upscale factor for cover art thumbnails. 1.5× keeps images perfectly sharp up to 150% 
+        // Windows scaling. This mathematically cuts the physical RAM footprint of every single 
+        // loaded image by an additional 44% compared to 2.0x.
+        public static readonly double CoverUpscaleFactor = 1.5;
         public static readonly int CoverQualityPercent = 80;
 
         // Headphone icon
@@ -81,9 +81,9 @@ namespace Dopamine.Core.Base
 
         // Delays
         public static readonly int ClosingFadeOutDelay = 500;
-        public static readonly int ArtworkLoadDelay = 150;
-        public static readonly int CommonListLoadDelay = 250;
-        public static readonly int NowPlayingListLoadDelay = 400;
+        public static readonly int ArtworkLoadDelay = 0;
+        public static readonly int CommonListLoadDelay = 0;
+        public static readonly int NowPlayingListLoadDelay = 0;
         public static readonly int MiniPlayerListLoadDelay = 250;
         public static readonly int CloudLoadDelay = 150;
         public static readonly int DelaySelectedAlbumsDelay = 250;
@@ -112,7 +112,7 @@ namespace Dopamine.Core.Base
         // Animation
         public static readonly Duration MouseEnterDuration = new Duration(TimeSpan.FromMilliseconds(50));
         public static readonly Duration MouseLeaveDuration = new Duration(TimeSpan.FromMilliseconds(200));
-        public static readonly Duration SourceChangedImageChangedDuration = new Duration(TimeSpan.FromMilliseconds(500));
-        public static readonly int SlideDistance = 20;
+        public static readonly Duration SourceChangedImageChangedDuration = new Duration(TimeSpan.FromMilliseconds(120));
+        public static readonly int SlideDistance = 30;
     }
 }

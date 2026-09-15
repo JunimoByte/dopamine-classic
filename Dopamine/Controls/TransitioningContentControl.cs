@@ -1,157 +1,138 @@
-﻿using System;
-using System.Timers;
+using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 
 namespace Dopamine.Controls
 {
+    /// <summary>
+    /// A ContentControl that smoothly animates its content when it changes.
+    /// Uses GPU-composited RenderTransform (TranslateTransform) — never Margin.
+    /// Easing: Material Design M3 "Emphasized Decelerate" (0.05, 0.7, 0.1, 1.0).
+    ///
+    /// Rapid navigation bug fix: each Animate() call increments _animVersion.
+    /// Completed lambdas capture the version at launch time and only apply
+    /// cleanup side-effects if no newer animation has since started, so a stale
+    /// Completed handler can never kill a live animation.
+    /// </summary>
     public class TransitioningContentControl : ContentControl
     {
-        private Timer timer;
+        public static readonly DependencyProperty FadeInProperty =
+            DependencyProperty.Register("FadeIn", typeof(bool), typeof(TransitioningContentControl), new PropertyMetadata(false));
+        public static readonly DependencyProperty FadeInTimeoutProperty =
+            DependencyProperty.Register("FadeInTimeout", typeof(double), typeof(TransitioningContentControl), new PropertyMetadata(0.5));
+        public static readonly DependencyProperty SlideInProperty =
+            DependencyProperty.Register("SlideIn", typeof(bool), typeof(TransitioningContentControl), new PropertyMetadata(false));
+        public static readonly DependencyProperty SlideInTimeoutProperty =
+            DependencyProperty.Register("SlideInTimeout", typeof(double), typeof(TransitioningContentControl), new PropertyMetadata(0.5));
+        public static readonly DependencyProperty SlideInFromProperty =
+            DependencyProperty.Register("SlideInFrom", typeof(int), typeof(TransitioningContentControl), new PropertyMetadata(0));
+        public static readonly DependencyProperty SlideInToProperty =
+            DependencyProperty.Register("SlideInTo", typeof(int), typeof(TransitioningContentControl), new PropertyMetadata(0));
+        public static readonly DependencyProperty RightToLeftProperty =
+            DependencyProperty.Register("RightToLeft", typeof(bool), typeof(TransitioningContentControl), new PropertyMetadata(false));
 
-        public static readonly DependencyProperty FadeInProperty = DependencyProperty.Register("FadeIn", typeof(bool), typeof(TransitioningContentControl), new PropertyMetadata(null));
-        public static readonly DependencyProperty FadeInTimeoutProperty = DependencyProperty.Register("FadeInTimeout", typeof(double), typeof(TransitioningContentControl), new PropertyMetadata(null));
-        public static readonly DependencyProperty SlideInProperty = DependencyProperty.Register("SlideIn", typeof(bool), typeof(TransitioningContentControl), new PropertyMetadata(null));
-        public static readonly DependencyProperty SlideInTimeoutProperty = DependencyProperty.Register("SlideInTimeout", typeof(double), typeof(TransitioningContentControl), new PropertyMetadata(null));
-        public static readonly DependencyProperty SlideInFromProperty = DependencyProperty.Register("SlideInFrom", typeof(int), typeof(TransitioningContentControl), new PropertyMetadata(null));
-        public static readonly DependencyProperty SlideInToProperty = DependencyProperty.Register("SlideInTo", typeof(int), typeof(TransitioningContentControl), new PropertyMetadata(null));
-        public static readonly DependencyProperty RightToLeftProperty = DependencyProperty.Register("RightToLeft", typeof(bool), typeof(TransitioningContentControl), new PropertyMetadata(null));
-
-        public static readonly RoutedEvent ContentChangedEvent = EventManager.RegisterRoutedEvent("ContentChanged", RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(TransitioningContentControl));
-        
-        public event RoutedEventHandler ContentChanged
-        {
-            add { this.AddHandler(ContentChangedEvent, value); }
-
-            remove { this.RemoveHandler(ContentChangedEvent, value); }
-
-
-        }
-        private void RaiseContentChangedEvent()
-        {
-            RoutedEventArgs newEventArgs = new RoutedEventArgs(TransitioningContentControl.ContentChangedEvent);
-            base.RaiseEvent(newEventArgs);
-        }
+        // Monotonically-increasing version. Each Animate() call captures the current
+        // value — Completed handlers only act if they still own the latest version.
+        private int _animVersion = 0;
 
         public bool FadeIn
         {
-            get { return Convert.ToBoolean(GetValue(FadeInProperty)); }
-
+            get { return (bool)GetValue(FadeInProperty); }
             set { SetValue(FadeInProperty, value); }
         }
-
         public double FadeInTimeout
         {
-            get { return Convert.ToDouble(GetValue(FadeInTimeoutProperty)); }
-
+            get { return (double)GetValue(FadeInTimeoutProperty); }
             set { SetValue(FadeInTimeoutProperty, value); }
         }
-
         public bool SlideIn
         {
-            get { return Convert.ToBoolean(GetValue(SlideInProperty)); }
-
+            get { return (bool)GetValue(SlideInProperty); }
             set { SetValue(SlideInProperty, value); }
         }
-
         public double SlideInTimeout
         {
-            get { return Convert.ToDouble(GetValue(SlideInTimeoutProperty)); }
-
+            get { return (double)GetValue(SlideInTimeoutProperty); }
             set { SetValue(SlideInTimeoutProperty, value); }
         }
-
         public int SlideInFrom
         {
-            get { return Convert.ToInt32(GetValue(SlideInFromProperty)); }
-
+            get { return (int)GetValue(SlideInFromProperty); }
             set { SetValue(SlideInFromProperty, value); }
         }
-
         public int SlideInTo
         {
-            get { return Convert.ToInt32(GetValue(SlideInToProperty)); }
-
+            get { return (int)GetValue(SlideInToProperty); }
             set { SetValue(SlideInToProperty, value); }
         }
-
         public bool RightToLeft
         {
-            get { return Convert.ToBoolean(GetValue(RightToLeftProperty)); }
-
+            get { return (bool)GetValue(RightToLeftProperty); }
             set { SetValue(RightToLeftProperty, value); }
         }
 
         protected override void OnContentChanged(object oldContent, object newContent)
         {
-            this.DoAnimation();
+            base.OnContentChanged(oldContent, newContent);
+            this.Animate();
         }
 
-        private void DoAnimation()
+        private void Animate()
         {
-            if (this.FadeInTimeout != null && this.FadeIn)
-            {
-                var da = new DoubleAnimation();
-                da.From = 0;
-                da.To = 1;
-                da.Duration = new Duration(TimeSpan.FromSeconds(this.FadeInTimeout));
-                this.BeginAnimation(OpacityProperty, da);
-            }
+            bool doFade  = this.FadeIn  && this.FadeInTimeout  > 0;
+            bool doSlide = this.SlideIn && this.SlideInTimeout > 0 && this.SlideInFrom != 0;
 
+            if (!doFade && !doSlide) return;
 
-            if (this.SlideInTimeout != null && this.SlideInTimeout > 0 && this.SlideIn)
+            // Bump version — any Completed handlers from previous animations will
+            // see a stale version and skip their cleanup, leaving this animation alone.
+            int version = ++_animVersion;
+
+            // Material Design M3 "Emphasized Decelerate": shoots in fast, decelerates smoothly.
+            var easing = new KeySpline(0.05, 0.7, 0.1, 1.0);
+
+            if (doFade)
             {
-                if (!this.RightToLeft)
+                var anim = new DoubleAnimationUsingKeyFrames
                 {
-                    var ta = new ThicknessAnimation();
-                    ta.From = new Thickness(this.SlideInFrom, this.Margin.Top, 2 * this.SlideInTo - this.SlideInFrom, this.Margin.Bottom);
-                    ta.To = new Thickness(this.SlideInTo, this.Margin.Top, this.SlideInTo, this.Margin.Bottom);
-                    ta.Duration = new Duration(TimeSpan.FromSeconds(this.SlideInTimeout));
-                    this.BeginAnimation(MarginProperty, ta);
-                }
-                else
+                    Duration     = new Duration(TimeSpan.FromSeconds(this.FadeInTimeout)),
+                    FillBehavior = FillBehavior.Stop,
+                };
+                anim.KeyFrames.Add(new DiscreteDoubleKeyFrame(0.0, KeyTime.FromPercent(0)));
+                anim.KeyFrames.Add(new SplineDoubleKeyFrame(1.0, KeyTime.FromPercent(1), easing));
+                anim.Completed += (_, __) =>
                 {
-                    var ta = new ThicknessAnimation();
-                    ta.From = new Thickness(2 * this.SlideInTo - this.SlideInFrom, this.Margin.Top, this.SlideInFrom, this.Margin.Bottom);
-                    ta.To = new Thickness(this.SlideInTo, this.Margin.Top, this.SlideInTo, this.Margin.Bottom);
-                    ta.Duration = new Duration(TimeSpan.FromSeconds(this.SlideInTimeout));
-                    this.BeginAnimation(MarginProperty, ta);
-                }
+                    // Only commit final state if we are still the active animation.
+                    if (_animVersion == version)
+                        this.Opacity = 1.0;
+                };
+                this.BeginAnimation(OpacityProperty, anim);
             }
 
-            if (this.timer != null)
+            if (doSlide)
             {
-                this.timer.Stop();
-                this.timer.Elapsed -= new ElapsedEventHandler(this.TimerElapsedHandler);
-            }
+                double fromX = this.RightToLeft ? -this.SlideInFrom : this.SlideInFrom;
 
-            this.timer = new Timer();
+                // Fresh transform every time — previous animated transform is discarded.
+                var translate = new TranslateTransform(fromX, 0);
+                this.RenderTransform = translate;
 
-            double biggestTimeout = this.SlideInTimeout;
-
-            if (this.FadeInTimeout > this.SlideInTimeout)
-            {
-                biggestTimeout = this.FadeInTimeout;
-            }
-
-            this.timer.Interval = TimeSpan.FromSeconds(biggestTimeout).TotalMilliseconds;
-
-            this.timer.Elapsed += new ElapsedEventHandler(this.TimerElapsedHandler);
-
-            this.timer.Start();
-        }
-
-        private void TimerElapsedHandler(object sender, ElapsedEventArgs e)
-        {
-            this.timer.Stop();
-
-            try
-            {
-                Application.Current.Dispatcher.BeginInvoke(new Action(() => this.RaiseContentChangedEvent()));
-            }
-            catch (Exception)
-            {
+                var anim = new DoubleAnimationUsingKeyFrames
+                {
+                    Duration     = new Duration(TimeSpan.FromSeconds(this.SlideInTimeout)),
+                    FillBehavior = FillBehavior.Stop,
+                };
+                anim.KeyFrames.Add(new DiscreteDoubleKeyFrame(fromX, KeyTime.FromPercent(0)));
+                anim.KeyFrames.Add(new SplineDoubleKeyFrame(0.0, KeyTime.FromPercent(1), easing));
+                anim.Completed += (_, __) =>
+                {
+                    // Only clean up if we are still the active animation.
+                    if (_animVersion == version)
+                        this.RenderTransform = Transform.Identity;
+                };
+                translate.BeginAnimation(TranslateTransform.XProperty, anim);
             }
         }
     }

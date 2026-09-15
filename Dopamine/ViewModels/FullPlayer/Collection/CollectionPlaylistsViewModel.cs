@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Settings;
 using Digimezzo.Foundation.Core.Utils;
 using Dopamine.Core.Base;
@@ -123,7 +123,14 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
 
         private async void PlaylistService_PlaylistFolderChanged(object sender, EventArgs e)
         {
-            await this.FillListsAsync();
+            try
+            {
+                await this.FillListsAsync();
+            }
+            catch (Exception ex)
+            {
+                LogClient.Error("Could not fill playlist lists. Exception: {0}", ex.Message);
+            }
         }
 
         public string PlaylistsTarget => "ListBoxPlaylists";
@@ -399,7 +406,14 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
             // Only update the tracks, if the selected playlist was modified.
             if (this.IsPlaylistSelected && playlist.Equals(this.SelectedPlaylist))
             {
-                await this.GetTracksAsync();
+                try
+                {
+                    await this.GetTracksAsync();
+                }
+                catch (Exception ex)
+                {
+                    LogClient.Error("Could not update tracks after deletion. Exception: {0}", ex.Message);
+                }
             }
         }
 
@@ -408,7 +422,14 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
             // Only update the tracks, if the selected playlist was modified.
             if (this.IsPlaylistSelected && string.Equals(this.SelectedPlaylistName, playlistName, StringComparison.InvariantCultureIgnoreCase))
             {
-                await this.GetTracksAsync();
+                try
+                {
+                    await this.GetTracksAsync();
+                }
+                catch (Exception ex)
+                {
+                    LogClient.Error("Could not update tracks after addition. Exception: {0}", ex.Message);
+                }
             }
         }
 

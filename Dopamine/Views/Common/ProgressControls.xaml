@@ -17,3 +17,5 @@
                             Maximum="1" 
                             IsHitTestVisible="{Binding CanReportProgress}"/>
 </UserControl>
+
+

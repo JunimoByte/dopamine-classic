@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Settings;
+using Digimezzo.Foundation.Core.Settings;
 using Dopamine.Core.Base;
 using Dopamine.Services.Cache;
 using Dopamine.Services.Metadata;
@@ -136,6 +136,7 @@ namespace Dopamine.Services.Notification
         {
             systemMediaControls.PlaybackStatus = MediaPlaybackStatus.Playing;
             var track = this.PlaybackService.CurrentTrack;
+            if (track == null) return;
             musicProperties.AlbumTitle = track.AlbumTitle;
             musicProperties.Artist = track.ArtistName;
             musicProperties.Title = track.TrackTitle;

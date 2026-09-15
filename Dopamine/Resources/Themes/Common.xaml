@@ -65,3 +65,5 @@
         <GradientStop Color="{DynamicResource Color_Black}" Offset="1.0" />
     </LinearGradientBrush>
 </ResourceDictionary>
+
+

@@ -94,6 +94,16 @@ namespace Dopamine.Views
             this.Close();
         }
 
+                protected override void OnClosed(EventArgs e)
+        {
+            if (this.trayIcon != null)
+            {
+                this.trayIcon.Visible = false;
+                this.trayIcon.Dispose();
+            }
+            base.OnClosed(e);
+        }
+
         private async void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             if (SettingsClient.Get<bool>("Behaviour", "ShowTrayIcon") &
@@ -544,3 +554,4 @@ namespace Dopamine.Views
         }
     }
 }
+

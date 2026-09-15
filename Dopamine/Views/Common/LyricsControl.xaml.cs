@@ -19,45 +19,55 @@ namespace Dopamine.Views.Common
         private IEventAggregator eventAggregator;
         private ListBox lyricsListBox;
         private TextBox lyricsTextBox;
+        private SubscriptionToken scrollSubscription;
        
         public LyricsControl()
         {
             InitializeComponent();
-
             this.playbackService = ServiceLocator.Current.GetInstance<IPlaybackService>();
             this.eventAggregator = ServiceLocator.Current.GetInstance<IEventAggregator>();
-            this.eventAggregator.GetEvent<ScrollToHighlightedLyricsLine>().Subscribe((_) => this.ScrollToHighlightedLyricsLineAsync());
+            
+            this.Loaded += OnLoaded;
+            this.Unloaded += OnUnloaded;
+        }
+
+        private void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            if (this.scrollSubscription == null)
+            {
+                this.scrollSubscription = this.eventAggregator.GetEvent<ScrollToHighlightedLyricsLine>().Subscribe((_) => this.ScrollToHighlightedLyricsLineAsync());
+            }
+        }
+
+        private void OnUnloaded(object sender, RoutedEventArgs e)
+        {
+            if (this.scrollSubscription != null)
+            {
+                this.eventAggregator.GetEvent<ScrollToHighlightedLyricsLine>().Unsubscribe(this.scrollSubscription);
+                this.scrollSubscription = null;
+            }
+            
+            // If the ViewModel has a cleanup method, we could theoretically call it here
+            // but we must ensure it can resume if Loaded again.
+            var vm = this.DataContext as IDisposable;
+            vm?.Dispose(); // Be careful, if Prism keeps it alive, disposing might break it. But LyricsControl doesn't natively support suspend/resume yet.
         }
     
         private void LyricsListBox_Loaded(object sender, RoutedEventArgs e)
         {
-            // This is a workaround to be able to access the LyricsListBox which is in the DataTemplate.
-            try
-            {
-                this.lyricsListBox = sender as ListBox;
-            }
-            catch (Exception ex)
-            {
-                LogClient.Error("Could not get lyricsListBox from the DataTemplate. Exception: {0}", ex.Message);
-            }
+            try { this.lyricsListBox = sender as ListBox; }
+            catch (Exception ex) { LogClient.Error("Could not get lyricsListBox from the DataTemplate. Exception: {0}", ex.Message); }
         }
 
         private void LyricsTextBox_Loaded(object sender, RoutedEventArgs e)
         {
-            // This is a workaround to be able to access the LyricsTextBox which is in the DataTemplate.
-            try
-            {
-                this.lyricsTextBox = sender as TextBox;
-            }
-            catch (Exception ex)
-            {
-                LogClient.Error("Could not get lyricsTextBox from the DataTemplate. Exception: {0}", ex.Message);
-            }
+            try { this.lyricsTextBox = sender as TextBox; }
+            catch (Exception ex) { LogClient.Error("Could not get lyricsTextBox from the DataTemplate. Exception: {0}", ex.Message); }
         }
 
         private void TextBox_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.T & Keyboard.Modifiers == ModifierKeys.Control)
+            if (e.Key == Key.T && Keyboard.Modifiers == ModifierKeys.Control)
             {
                 if (!this.playbackService.IsStopped) this.AddTimeStampToSelectedLyricsLine();
             }
@@ -66,10 +76,8 @@ namespace Dopamine.Views.Common
         private async void ScrollToHighlightedLyricsLineAsync()
         {
             if (this.lyricsListBox == null) return;
-
             try
             {
-                // When shutting down, Application.Current is null
                 if (Application.Current != null)
                 {
                     await Application.Current.Dispatcher.Invoke(async () =>
@@ -90,20 +98,17 @@ namespace Dopamine.Views.Common
             {
                 try
                 {
-                    // Using the Dispatcher seems to be the only way to ever make the TextBox focus.
-                    // See: http://stackoverflow.com/questions/13955340/keyboard-focus-does-not-work-on-text-box-in-wpf
                     Dispatcher.BeginInvoke(DispatcherPriority.Input,
                           new Action(delegate ()
                           {
-                              this.lyricsTextBox.Focus(); // Set Logical Focus
-                              Keyboard.Focus(this.lyricsTextBox); // Set Keyboard Focus (this is probably not needed)
+                              this.lyricsTextBox.Focus();
+                              Keyboard.Focus(this.lyricsTextBox);
                           }));
                 }
                 catch (Exception ex)
                 {
                     LogClient.Error("Could not set focus on lyricsTextBox. Exception: {0}", ex.Message);
                 }
-
             }
         }
 
@@ -119,8 +124,8 @@ namespace Dopamine.Views.Common
 
                     if (line.Trim().Length == 0)
                     {
-                        this.lyricsTextBox.CaretIndex += 1; // Jump to the next line
-                        return; // Don't try to add a timeStamp to an empty line (Trim removes newline characters)
+                        this.lyricsTextBox.CaretIndex += 1;
+                        return;
                     }
 
                     string strippedLine = string.Empty;
@@ -128,11 +133,7 @@ namespace Dopamine.Views.Common
                     if (line.Length > 0 && line.StartsWith("["))
                     {
                         int index = line.IndexOf(']');
-
-                        if (index > 0)
-                        {
-                            strippedLine = line.Substring(index + 1);
-                        }
+                        if (index > 0) strippedLine = line.Substring(index + 1);
                     }
                     else
                     {
@@ -152,12 +153,10 @@ namespace Dopamine.Views.Common
                     this.lyricsTextBox.Text = this.lyricsTextBox.Text.Insert(lineStartIndex, newLine);
                     this.lyricsTextBox.CaretIndex = lineStartIndex + newLine.Length;
 
-                    // Jump over empty lines
                     line = this.lyricsTextBox.GetLineText(this.lyricsTextBox.GetLineIndexFromCharacterIndex(this.lyricsTextBox.CaretIndex));
 
                     while (line.Trim().Length == 0)
                     {
-                        // Make sure to get out of the loop if an empty line was found at the end of the lyrics
                         if (this.lyricsTextBox.CaretIndex == this.lyricsTextBox.Text.Length) break;
                         this.lyricsTextBox.CaretIndex += 1;
                         line = this.lyricsTextBox.GetLineText(this.lyricsTextBox.GetLineIndexFromCharacterIndex(this.lyricsTextBox.CaretIndex));

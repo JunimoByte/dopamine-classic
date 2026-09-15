@@ -16,3 +16,5 @@
         <Label Padding="0" Width="50" Content="{Binding TotalTime}" HorizontalAlignment="Left" HorizontalContentAlignment="Left" Foreground="{DynamicResource Brush_PrimaryText}" FontSize="{x:Static base:Constants.GlobalFontSize}"/>
     </StackPanel>
 </UserControl>
+
+

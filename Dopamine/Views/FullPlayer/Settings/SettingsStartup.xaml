@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="Dopamine.Views.FullPlayer.Settings.SettingsStartup"
+<UserControl x:Class="Dopamine.Views.FullPlayer.Settings.SettingsStartup"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -11,33 +11,7 @@
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="5" Padding="15" PanningMode="Both">
         <StackPanel>
-            <Label Style="{StaticResource TitleLabel}" Content="{DynamicResource Language_Updates}" />
-            <StackPanel Margin="0,5,0,0">
-                <TextBlock Text="{DynamicResource Language_Check_For_Updates_At_Startup}" Foreground="{DynamicResource Brush_PrimaryText}"/>
-                <dc:Windows10ToggleSwitch x:Name="CheckBoxCheckForUpdatesAtStartup" Margin="0,10,0,0" HorizontalAlignment="Left" FontSize="12" OnLabel="{DynamicResource Language_Yes}" OffLabel="{DynamicResource Language_No}" Foreground="{DynamicResource Brush_PrimaryText}" Accent="{DynamicResource Brush_Accent}" IsChecked="{Binding CheckBoxCheckForUpdatesAtStartupChecked}"/>
-                <TextBlock Margin="0,20,0,0" Text="{DynamicResource Language_Check_For_Updates_Periodically}" Foreground="{DynamicResource Brush_PrimaryText}"/>
-                <dc:Windows10ToggleSwitch x:Name="CheckBoxCheckForUpdatesPeriodically" Margin="0,10,0,0" HorizontalAlignment="Left" FontSize="12" OnLabel="{DynamicResource Language_Yes}" OffLabel="{DynamicResource Language_No}" Foreground="{DynamicResource Brush_PrimaryText}" Accent="{DynamicResource Brush_Accent}" IsChecked="{Binding CheckBoxCheckForUpdatesPeriodicallyChecked}"/>
-            </StackPanel>
-            <StackPanel Margin="0,20,0,0">
-                <StackPanel.Style>
-                    <Style TargetType="{x:Type StackPanel}">
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsPortable}" Value="True">
-                                <Setter Property="IsHitTestVisible" Value="False"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding IsUpdateCheckEnabled}" Value="False">
-                                <Setter Property="IsHitTestVisible" Value="False"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding IsHitTestVisible, RelativeSource={RelativeSource Self}}" Value="False">
-                                <Setter Property="Opacity" Value="0.5"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </StackPanel.Style>
-                <TextBlock Text="{DynamicResource Language_Also_Check_For_Prereleases}" Foreground="{DynamicResource Brush_PrimaryText}"/>
-                <dc:Windows10ToggleSwitch x:Name="CheckBoxCheckForPrereleases" Margin="0,10,0,0" HorizontalAlignment="Left" FontSize="12" OnLabel="{DynamicResource Language_Yes}" OffLabel="{DynamicResource Language_No}" Foreground="{DynamicResource Brush_PrimaryText}" Accent="{DynamicResource Brush_Accent}" IsChecked="{Binding CheckBoxCheckForPrereleasesChecked}"/>
-            </StackPanel>
-            <Label Margin="0,20,0,0" Style="{StaticResource TitleLabel}" Content="{DynamicResource Language_Startup_Page}" />
+            <Label Style="{StaticResource TitleLabel}" Content="{DynamicResource Language_Startup_Page}" />
             <StackPanel Margin="0,5,0,0">
                 <TextBlock Text="{DynamicResource Language_Start_At_Last_Selected_Page}" Foreground="{DynamicResource Brush_PrimaryText}"/>
                 <dc:Windows10ToggleSwitch x:Name="CheckBoxStartupPage" Margin="0,10,0,0" HorizontalAlignment="Left" FontSize="12" OnLabel="{DynamicResource Language_Yes}" OffLabel="{DynamicResource Language_No}" Foreground="{DynamicResource Brush_PrimaryText}" Accent="{DynamicResource Brush_Accent}" IsChecked="{Binding CheckBoxStartupPageChecked}"/>

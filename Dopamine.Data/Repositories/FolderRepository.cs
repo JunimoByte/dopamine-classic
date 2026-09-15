@@ -68,8 +68,8 @@ namespace Dopamine.Data.Repositories
                     {
                         try
                         {
-                            conn.Execute($"DELETE FROM Folder WHERE FolderID={folderId};");
-                            conn.Execute($"DELETE FROM FolderTrack WHERE FolderID={folderId};");
+                            conn.Execute("DELETE FROM Folder WHERE FolderID=?", folderId);
+                            conn.Execute("DELETE FROM FolderTrack WHERE FolderID=?", folderId);
 
                             LogClient.Info("Removed the Folder with FolderID={0}", folderId);
                         }
@@ -154,3 +154,4 @@ namespace Dopamine.Data.Repositories
         }
     }
 }
+

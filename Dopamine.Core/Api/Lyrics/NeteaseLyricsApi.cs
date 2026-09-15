@@ -1,29 +1,17 @@
 ﻿using Digimezzo.Foundation.Core.Settings;
 using Dopamine.Core.Helpers;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Web.Script.Serialization;
 
 namespace Dopamine.Core.Api.Lyrics
 {
     // API from http://moonlib.com/606.html
     public class NeteaseLyricsApi : ILyricsApi
     {
-        internal class LyricModel
-        {
-            public Lrc lrc { get; set; }
-            public Lrc tlyric { get; set; }
-
-            internal class Lrc
-            {
-                public int version { get; set; }
-                public string lyric { get; set; }
-            }
-        }
-
         private ILocalizationInfo info;
         private const string apiSearchResultLimit = "1";
 
@@ -31,15 +19,11 @@ namespace Dopamine.Core.Api.Lyrics
 
         private const string apiRootUrl = "http://music.163.com/api/";
         private int timeoutSeconds;
-        private HttpClient httpClient;
+        private static readonly HttpClient httpClient;
         private bool enableTLyric;
 
-        public NeteaseLyricsApi(int timeoutSeconds, ILocalizationInfo info)
+        static NeteaseLyricsApi()
         {
-            this.timeoutSeconds = timeoutSeconds;
-            this.info = info;
-            this.enableTLyric = SettingsClient.Get<string>("Appearance", "Language") == "ZH-CN";
-
             httpClient = new HttpClient(new HttpClientHandler() {AutomaticDecompression = DecompressionMethods.GZip})
             {
                 BaseAddress = new Uri(apiRootUrl)
@@ -55,49 +39,83 @@ namespace Dopamine.Core.Api.Lyrics
                 "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
         }
 
+        public NeteaseLyricsApi(int timeoutSeconds, ILocalizationInfo info)
+        {
+            this.timeoutSeconds = timeoutSeconds;
+            this.info = info;
+            this.enableTLyric = SettingsClient.Get<string>("Appearance", "Language") == "ZH-CN";
+        }
+
         private async Task<string> ParseTrackIdAsync(string artist, string title)
         {
-            var postContent = new[]
+            var postContent = new Dictionary<string, string>
             {
-                new KeyValuePair<string, string>("s", title + "\x20" + artist),
-                new KeyValuePair<string, string>("offset", "0"),
-                new KeyValuePair<string, string>("limit", apiSearchResultLimit),
-                new KeyValuePair<string, string>("type", "1")
+                {"s", title + " " + artist},
+                {"limit", apiSearchResultLimit},
+                {"type", "1"},
+                {"offset", "0"}
             };
 
             var response =
                 await (await httpClient.PostAsync("search/pc", new FormUrlEncodedContent(postContent))).Content
                     .ReadAsStringAsync();
 
-            int start = response.IndexOf("\",\"id\":") + 7;
+            int start = response.IndexOf("\"id\":") + 6;
+            if (start < 6) return string.Empty;
             int end = response.IndexOf(",\"position\":", start);
-
+            if (end < 0) return string.Empty;
             return response.Substring(start, end - start);
         }
 
         private async Task<string> ParseLyricsAsync(string trackId)
         {
             string resJson = await httpClient.GetStringAsync(String.Format(apiLyricsFormat, trackId));
-            LyricModel res = JsonConvert.DeserializeObject<LyricModel>(resJson);
+            
+            var jss = new JavaScriptSerializer();
+            var dict = jss.Deserialize<Dictionary<string, object>>(resJson);
 
-            if (res.tlyric == null || string.IsNullOrEmpty(res.tlyric.lyric) || !this.enableTLyric)
+            string lrcLyric = string.Empty;
+            string tLyric = string.Empty;
+
+            if (dict != null)
             {
-                return res.lrc.lyric;
+                if (dict.ContainsKey("lrc"))
+                {
+                    var lrcDict = dict["lrc"] as Dictionary<string, object>;
+                    if (lrcDict != null && lrcDict.ContainsKey("lyric"))
+                    {
+                        lrcLyric = lrcDict["lyric"]?.ToString();
+                    }
+                }
+                
+                if (this.enableTLyric && dict.ContainsKey("tlyric"))
+                {
+                    var tlrcDict = dict["tlyric"] as Dictionary<string, object>;
+                    if (tlrcDict != null && tlrcDict.ContainsKey("lyric"))
+                    {
+                        tLyric = tlrcDict["lyric"]?.ToString();
+                    }
+                }
             }
-            else
-            {
-                return res.tlyric.lyric;
-            }
+            
+            if (string.IsNullOrEmpty(tLyric))
+                return lrcLyric;
+                
+            return lrcLyric + "\r\n" + tLyric;
         }
-
-        public string SourceName => this.info.NeteaseLyrics;
 
         public async Task<string> GetLyricsAsync(string artist, string title)
         {
-            var trackId = await ParseTrackIdAsync(artist, title);
-            var result = await ParseLyricsAsync(trackId);
+            string trackId = await ParseTrackIdAsync(artist, title);
 
-            return result;
+            if (!string.IsNullOrEmpty(trackId))
+            {
+                return await ParseLyricsAsync(trackId);
+            }
+
+            return string.Empty;
         }
+
+        public string SourceName => "NeteaseMusic";
     }
 }

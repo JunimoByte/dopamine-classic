@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Logging;
 using Dopamine.Core.Helpers;
 using Dopamine.Data.Entities;
 using Dopamine.Data.Repositories;
@@ -43,7 +43,7 @@ namespace Dopamine.Services.Indexing
                     try
                     {
                         // When the folder exists, but access is denied, creating the FileSystemWatcher throws an exception.
-                        var watcher = new GentleFolderWatcher(fol.Path, true, 2000);
+                        var watcher = new GentleFolderWatcher(fol.Path, true, 500);
                         watcher.FolderChanged += Watcher_FolderChanged;
                         this.watchers.Add(watcher);
                         watcher.Resume();

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Animation;
@@ -14,7 +14,7 @@ namespace Dopamine.Controls
             set { SetValue(DurationProperty, value); }
         }
 
-        public static readonly DependencyProperty DurationProperty = DependencyProperty.Register("Duration", typeof(double), typeof(ZoomInContentControl), new PropertyMetadata(0.5));
+        public static readonly DependencyProperty DurationProperty = DependencyProperty.Register("Duration", typeof(double), typeof(ZoomInContentControl), new PropertyMetadata(0.3));
 
         protected override void OnContentChanged(object oldContent, object newContent)
         {
@@ -30,6 +30,7 @@ namespace Dopamine.Controls
             ta.From = new Thickness(this.ActualWidth / 2, this.ActualHeight / 2, this.ActualWidth / 2, this.ActualHeight / 2);
             ta.To = new Thickness(0, 0, 0, 0);
             ta.Duration = new Duration(TimeSpan.FromSeconds(this.Duration));
+            ta.EasingFunction = new CubicEase() { EasingMode = EasingMode.EaseOut };
             this.BeginAnimation(MarginProperty, ta);
         }
     }

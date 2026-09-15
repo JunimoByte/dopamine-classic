@@ -36,7 +36,6 @@ using Dopamine.Services.Search;
 using Dopamine.Services.Shell;
 using Dopamine.Services.Statistics;
 using Dopamine.Services.Taskbar;
-using Dopamine.Services.Update;
 using Dopamine.Services.Win32Input;
 using Dopamine.Services.WindowsIntegration;
 using Dopamine.Utils;
@@ -229,7 +228,6 @@ namespace Dopamine
             void RegisterServices()
             {
                 containerRegistry.RegisterSingleton<ICacheService, CacheService>();
-                containerRegistry.RegisterSingleton<IUpdateService, UpdateService>();
                 containerRegistry.RegisterSingleton<IAppearanceService, AppearanceService>();
                 containerRegistry.RegisterSingleton<II18nService, I18nService>();
                 containerRegistry.RegisterSingleton<IDialogService, DialogService>();
@@ -575,3 +573,4 @@ namespace Dopamine
         }
     }
 }
+

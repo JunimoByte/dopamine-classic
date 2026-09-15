@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Utils;
 using Dopamine.Core.Base;
 using Dopamine.Core.Extensions;
@@ -73,20 +73,51 @@ namespace Dopamine.Services.File
                 return new List<TrackViewModel>();
             }
 
-            string[] paths = Directory.GetFiles(directoryPath).SortNaturally().ToArray();
-
             var tracks = new List<TrackViewModel>();
+            List<string> audioPaths = null;
 
-            await Task.Run(async () =>
+            await Task.Run(() =>
             {
-                foreach (string path in paths)
+                string[] paths = Directory.GetFiles(directoryPath).SortNaturally().ToArray();
+                audioPaths = paths.Where(p => FileFormats.IsSupportedAudioFile(p)).ToList();
+            });
+
+            if (audioPaths != null && audioPaths.Count > 0)
+            {
+                var dbTracks = await this.trackRepository.GetTracksAsync(audioPaths);
+                var dbTracksDict = dbTracks.ToDictionary(t => t.Path.ToSafePath(), StringComparer.OrdinalIgnoreCase);
+
+                var fallbackTasks = new Dictionary<string, Task<TrackViewModel>>();
+                foreach (string audioFilePath in audioPaths)
                 {
-                    if (FileFormats.IsSupportedAudioFile(path))
+                    string safePath = audioFilePath.ToSafePath();
+                    if (!dbTracksDict.ContainsKey(safePath))
                     {
-                        tracks.Add(await this.CreateTrackAsync(path));
+                        if (!fallbackTasks.ContainsKey(safePath))
+                        {
+                            fallbackTasks[safePath] = this.CreateTrackAsync(audioFilePath);
+                        }
                     }
                 }
-            });
+
+                if (fallbackTasks.Count > 0)
+                {
+                    await Task.WhenAll(fallbackTasks.Values);
+                }
+
+                foreach (string audioFilePath in audioPaths)
+                {
+                    string safePath = audioFilePath.ToSafePath();
+                    if (dbTracksDict.TryGetValue(safePath, out Dopamine.Data.Entities.Track dbTrack) && dbTrack != null)
+                    {
+                        tracks.Add(this.container.ResolveTrackViewModel(dbTrack));
+                    }
+                    else if (fallbackTasks.TryGetValue(safePath, out Task<TrackViewModel> task))
+                    {
+                        tracks.Add(task.Result);
+                    }
+                }
+            }
 
             return tracks;
         }
@@ -95,43 +126,74 @@ namespace Dopamine.Services.File
         {
             var tracks = new List<TrackViewModel>();
 
-            await Task.Run(async () =>
+            if (paths == null)
             {
-                if (paths == null)
-                {
-                    return;
-                }
+                return tracks;
+            }
 
-                // Convert the files to tracks
+            var audioPaths = new List<string>();
+
+            await Task.Run(() =>
+            {
                 foreach (string path in paths)
                 {
                     if (FileFormats.IsSupportedAudioFile(path))
                     {
-                        // The file is a supported audio format: add it directly.
-                        tracks.Add(await this.CreateTrackAsync(path));
+                        audioPaths.Add(path);
                     }
                     else if (processPlaylistFiles && FileFormats.IsSupportedStaticPlaylistFile(path))
                     {
-                        // The file is a supported playlist format: process the contents of the playlist file.
                         foreach (string audioFilePath in this.ProcessPlaylistFile(path))
                         {
-                            tracks.Add(await this.CreateTrackAsync(audioFilePath));
+                            audioPaths.Add(audioFilePath);
                         }
                     }
                     else if (Directory.Exists(path))
                     {
-                        // The file is a directory: get the audio files in that directory and all its sub directories.
                         foreach (string audioFilePath in this.ProcessDirectory(path))
                         {
-                            tracks.Add(await this.CreateTrackAsync(audioFilePath));
+                            audioPaths.Add(audioFilePath);
                         }
-                    }
-                    else
-                    {
-                        // The file is unknown: do not process it.
                     }
                 }
             });
+
+            if (audioPaths.Count > 0)
+            {
+                var dbTracks = await this.trackRepository.GetTracksAsync(audioPaths);
+                var dbTracksDict = dbTracks.ToDictionary(t => t.Path.ToSafePath(), StringComparer.OrdinalIgnoreCase);
+
+                var fallbackTasks = new Dictionary<string, Task<TrackViewModel>>();
+                foreach (string audioFilePath in audioPaths)
+                {
+                    string safePath = audioFilePath.ToSafePath();
+                    if (!dbTracksDict.ContainsKey(safePath))
+                    {
+                        if (!fallbackTasks.ContainsKey(safePath)) 
+                        {
+                            fallbackTasks[safePath] = this.CreateTrackAsync(audioFilePath);
+                        }
+                    }
+                }
+
+                if (fallbackTasks.Count > 0)
+                {
+                    await Task.WhenAll(fallbackTasks.Values);
+                }
+
+                foreach (string audioFilePath in audioPaths)
+                {
+                    string safePath = audioFilePath.ToSafePath();
+                    if (dbTracksDict.TryGetValue(safePath, out Dopamine.Data.Entities.Track dbTrack) && dbTrack != null)
+                    {
+                        tracks.Add(this.container.ResolveTrackViewModel(dbTrack));
+                    }
+                    else if (fallbackTasks.TryGetValue(safePath, out Task<TrackViewModel> task))
+                    {
+                        tracks.Add(task.Result);
+                    }
+                }
+            }
 
             return tracks;
         }

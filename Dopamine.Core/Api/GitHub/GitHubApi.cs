@@ -1,7 +1,8 @@
-using System.Linq;
+﻿using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
+using System.Web.Script.Serialization;
+using System.Collections.Generic;
 
 namespace Dopamine.Core.Api.GitHub
 {
@@ -14,20 +15,22 @@ namespace Dopamine.Core.Api.GitHub
             httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("request");
 
             var releasesResponse = await httpClient.GetStringAsync(url);
-            var releases = JArray.Parse(releasesResponse);
+            
+            var jss = new JavaScriptSerializer();
+            var releases = jss.Deserialize<List<Dictionary<string, object>>>(releasesResponse);
 
-            JObject latestRelease = null;
+            Dictionary<string, object> latestRelease = null;
 
             if (includePrereleases)
             {
-                latestRelease = releases.FirstOrDefault(x => (bool)x["prerelease"]) as JObject;
+                latestRelease = releases.FirstOrDefault(x => x.ContainsKey("prerelease") && (bool)x["prerelease"]);
             }
             else
             {
-                latestRelease = releases.FirstOrDefault(x => !(bool)x["prerelease"]) as JObject;
+                latestRelease = releases.FirstOrDefault(x => x.ContainsKey("prerelease") && !(bool)x["prerelease"]);
             }
 
-            if (latestRelease != null && latestRelease["tag_name"] != null)
+            if (latestRelease != null && latestRelease.ContainsKey("tag_name") && latestRelease["tag_name"] != null)
             {
                 return latestRelease["tag_name"].ToString().Replace("v", "");
             }
@@ -36,3 +39,4 @@ namespace Dopamine.Core.Api.GitHub
         }
     }
 }
+

@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Logging;
 using Dopamine.Core.Base;
 using Dopamine.Core.Extensions;
 using Dopamine.Data.Entities;
@@ -27,7 +27,13 @@ namespace Dopamine.Services.Playback
 
         public IList<TrackViewModel> Queue
         {
-            get { return this.queue; }
+            get 
+            { 
+                lock (this.queueLock)
+                {
+                    return this.queue.ToList(); 
+                }
+            }
         }
 
         private List<int> GetQueueIndices()
@@ -69,7 +75,7 @@ namespace Dopamine.Services.Playback
                 {
                     if (this.queue.Count > 0)
                     {
-                        if (this.currentTrack != null || !this.queue.Contains(this.currentTrack))
+                        if (this.currentTrack == null || !this.queue.Contains(this.currentTrack))
                         {
                             // We're not playing a track from the queue: just shuffle.
                             this.playbackOrder = this.GetQueueIndices().Randomize();
@@ -204,7 +210,7 @@ namespace Dopamine.Services.Playback
                             if (loopMode.Equals(LoopMode.One))
                             {
                                 // Return the current track
-                                nextTrack = this.queue[this.playbackOrder[currentTrackIndex]];
+                                nextTrack = this.currentTrack;
                             }
                             else
                             {
@@ -216,7 +222,7 @@ namespace Dopamine.Services.Playback
                                     nextTrack = this.queue[this.playbackOrder[currentTrackIndex + increment]];
 
                                     // HACK: voids getting stuck on the same track when the playlist contains the same track multiple times
-                                    while (this.currentTrack.Path.Equals(nextTrack.Path))
+                                    while (this.currentTrack != null && this.currentTrack.Path.Equals(nextTrack.Path) && currentTrackIndex + increment < this.playbackOrder.Count - 1)
                                     {
                                         increment++;
                                         nextTrack = this.queue[this.playbackOrder[currentTrackIndex + increment]];
