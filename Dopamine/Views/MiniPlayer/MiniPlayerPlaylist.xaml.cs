@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Settings;
+using Digimezzo.Foundation.Core.Settings;
 using Digimezzo.Foundation.Core.Utils;
 using Digimezzo.Foundation.WPF.Controls;
 using Dopamine.Core.Base;
@@ -112,15 +112,7 @@ namespace Dopamine.Views.MiniPlayer
 
         private void SetTransparency()
         {
-            if (EnvironmentUtils.IsWindows10() && SettingsClient.Get<bool>("Appearance", "EnableTransparency"))
-            {
-                this.PlaylistBackground.Opacity = Constants.OpacityWhenBlurred;
-                WindowUtils.EnableBlur(this);
-            }
-            else
-            {
-                this.PlaylistBackground.Opacity = 1.0;
-            }
+            this.PlaylistBackground.Opacity = 1;
         }
 
         private async Task SetGeometry()

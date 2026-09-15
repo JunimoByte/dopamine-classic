@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Settings;
 using Digimezzo.Foundation.Core.Utils;
 using Digimezzo.Foundation.Core.Win32;
@@ -47,15 +47,7 @@ namespace Dopamine.Views.Common
 
         private void SetTransparency()
         {
-            if (EnvironmentUtils.IsWindows10() && SettingsClient.Get<bool>("Appearance", "EnableTransparency"))
-            {
-                this.WindowBackground.Opacity = Constants.OpacityWhenBlurred;
-                WindowUtils.EnableBlur(this);
-            }
-            else
-            {
-                this.WindowBackground.Opacity = 1.0;
-            }
+            this.WindowBackground.Opacity = 1;
         }
 
         private void SetGeometry()

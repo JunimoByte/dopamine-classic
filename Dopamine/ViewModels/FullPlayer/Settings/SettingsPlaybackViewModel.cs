@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Helpers;
+using Digimezzo.Foundation.Core.Helpers;
 using Digimezzo.Foundation.Core.Settings;
 using Digimezzo.Foundation.Core.Utils;
 using Dopamine.Core.Audio;
@@ -60,7 +60,6 @@ namespace Dopamine.ViewModels.FullPlayer.Settings
 
         public bool SupportsWindowsMediaFoundation => MediaFoundationHelper.HasMediaFoundationSupport();
 
-        public bool IsWindows10 => Constants.IsWindows10;
 
         public bool CheckBoxShowSpectrumAnalyzerChecked
         {

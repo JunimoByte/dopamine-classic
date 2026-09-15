@@ -11,7 +11,7 @@ namespace Dopamine.Core.Base
         public static string DoubleColumnValueDelimiter = $"{ColumnValueDelimiter}{ColumnValueDelimiter}";
 
         // Environment
-        public static bool IsWindows10 = EnvironmentUtils.IsWindows10();
+        public static bool IsWindows10 = true;
 
         // Links
         public static string HomeLink = "https://www.digimezzo.com";

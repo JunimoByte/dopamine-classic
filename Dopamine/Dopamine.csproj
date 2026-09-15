@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -855,7 +855,6 @@
     <Content Include="Libraries\Digimezzo.Foundation.Core.dll" />
     <Content Include="Libraries\Digimezzo.Foundation.WPF.dll" />
     <Content Include="Libraries\GongSolutions.WPF.DragDrop.dll" />
-    <Content Include="Libraries\Ionic.Zip.dll" />
     <Content Include="Libraries\NVorbis.dll" />
     <Content Include="Libraries\System.Windows.Interactivity.dll" />
     <Content Include="Libraries\taglib-sharp.dll" />

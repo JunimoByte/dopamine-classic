@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="Dopamine.Views.FullPlayer.Settings.SettingsAppearance"
+<UserControl x:Class="Dopamine.Views.FullPlayer.Settings.SettingsAppearance"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -22,11 +22,7 @@
             <Label Margin="0,20,0,0" Style="{StaticResource TitleLabel}" Content="{DynamicResource Language_Language}" />
             <TextBlock Margin="0,5,0,0" Text="{DynamicResource Language_Choose_Language}" Foreground="{DynamicResource Brush_PrimaryText}"/>
             <commonviews:AppearanceLanguage Margin="0,15,0,0"/>
-            <StackPanel Visibility="{Binding IsWindows10, Converter={StaticResource BooleanToCollapsedConverter}}">
-                <Label Margin="0,20,0,0" Style="{StaticResource TitleLabel}" Content="{DynamicResource Language_Transparency}" />
-                <TextBlock Margin="0,5,0,0" Text="{DynamicResource Language_Enable_Transparency}" Foreground="{DynamicResource Brush_PrimaryText}"/>
-                <dc:Windows10ToggleSwitch x:Name="CheckBoxEnableTransparency" Margin="0,10,0,0" HorizontalAlignment="Left" FontSize="12" OnLabel="{DynamicResource Language_Yes}" OffLabel="{DynamicResource Language_No}" Foreground="{DynamicResource Brush_PrimaryText}" Accent="{DynamicResource Brush_Accent}" IsChecked="{Binding CheckBoxEnableTransparencyChecked}"/>
-            </StackPanel>
+
         </StackPanel>
     </ScrollViewer>
 </UserControl>

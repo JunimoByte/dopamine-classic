@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.IO;
+using Digimezzo.Foundation.Core.IO;
 using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Settings;
 using Dopamine.Core.Base;
@@ -16,7 +16,6 @@ namespace Dopamine.ViewModels.FullPlayer.Settings
     {
         private IPlaybackService playbackService;
         private bool checkBoxCheckBoxShowWindowBorderChecked;
-        private bool checkBoxEnableTransparencyChecked;
         private IEventAggregator eventAggregator;
 
         public DelegateCommand<string> OpenColorSchemesDirectoryCommand { get; set; }
@@ -32,16 +31,6 @@ namespace Dopamine.ViewModels.FullPlayer.Settings
             {
                 SettingsClient.Set<bool>("Appearance", "ShowWindowBorder", value, true);
                 SetProperty<bool>(ref this.checkBoxCheckBoxShowWindowBorderChecked, value);
-            }
-        }
-
-        public bool CheckBoxEnableTransparencyChecked
-        {
-            get { return this.checkBoxEnableTransparencyChecked; }
-            set
-            {
-                SettingsClient.Set<bool>("Appearance", "EnableTransparency", value);
-                SetProperty<bool>(ref this.checkBoxEnableTransparencyChecked, value);
             }
         }
 
@@ -72,7 +61,6 @@ namespace Dopamine.ViewModels.FullPlayer.Settings
             await Task.Run(() =>
             {
                 this.checkBoxCheckBoxShowWindowBorderChecked = SettingsClient.Get<bool>("Appearance", "ShowWindowBorder");
-                this.checkBoxEnableTransparencyChecked = SettingsClient.Get<bool>("Appearance", "EnableTransparency");
             });
         }
     }

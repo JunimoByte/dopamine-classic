@@ -1,4 +1,4 @@
-ï»¿using Digimezzo.Foundation.Core.Packaging;
+using Digimezzo.Foundation.Core.Packaging;
 using System;
 
 namespace Dopamine.Core.Base
@@ -7,7 +7,7 @@ namespace Dopamine.Core.Base
     {
         public static string ApplicationGuid = "75ba9e1e-9eff-4a8e-845e-125dc4318c3b";
         public static string ApplicationName = "Dopamine";
-        public static string Copyright = "Copyright Digimezzo Â© 2014-" + DateTime.Now.Year;
+        public static string Copyright = "Copyright Digimezzo © 2014-" + DateTime.Now.Year;
 
         public static readonly ExternalComponent[] Components =
         {
@@ -20,7 +20,7 @@ namespace Dopamine.Core.Base
             },
             new ExternalComponent
             {
-                Name = "CSCore â€“ .NET Sound Library",
+                Name = "CSCore – .NET Sound Library",
                 Description = "A free .NET audio library which is completely written in C#.",
                 Url = "https://github.com/filoe/cscore",
                 LicenseUrl = "https://github.com/filoe/cscore/blob/master/license.md"
