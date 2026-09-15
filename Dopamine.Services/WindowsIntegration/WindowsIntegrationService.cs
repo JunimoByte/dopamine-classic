@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Settings;
 using Dopamine.Services.Playback;
 using Microsoft.Win32;
@@ -13,9 +13,7 @@ namespace Dopamine.Services.WindowsIntegration
         private IPlaybackService playbackService;
         private bool isStartedFromExplorer;
 
-        private bool isMonitoringTabletMode;
         private bool isMonitoringSystemUsesLightTheme;
-        private bool lastTabletMode;
         private bool lastSystemUsesLightTheme;
     
         public WindowsIntegrationService(IPlaybackService playbackService)
@@ -52,16 +50,6 @@ namespace Dopamine.Services.WindowsIntegration
         {
             if (e.Category == UserPreferenceCategory.General)
             {
-                if (this.isMonitoringTabletMode)
-                {
-                    bool currentTabletMode = this.IsTabletModeEnabled;
-                    if (currentTabletMode != this.lastTabletMode)
-                    {
-                        this.lastTabletMode = currentTabletMode;
-                        this.TabletModeChanged?.Invoke(this, new EventArgs());
-                    }
-                }
-
                 if (this.isMonitoringSystemUsesLightTheme)
                 {
                     bool currentTheme = this.IsSystemUsingLightTheme;
@@ -111,27 +99,7 @@ namespace Dopamine.Services.WindowsIntegration
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         static extern EXECUTION_STATE SetThreadExecutionState(EXECUTION_STATE esFlags);
 
-        public event EventHandler TabletModeChanged = delegate { };
         public event EventHandler SystemUsesLightThemeChanged = delegate { };
-
-        public bool IsTabletModeEnabled
-        {
-            get
-            {
-                int registryTabletMode = 0;
-
-                try
-                {
-                    registryTabletMode = (int)Registry.GetValue("HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ImmersiveShell", "TabletMode", 0);
-                }
-                catch (Exception ex)
-                {
-                    LogClient.Error("Could not get tablet mode from registry. Exception: {0}", ex.Message);
-                }
-
-                return registryTabletMode == 1 ? true : false;
-            }
-        }
 
         public bool IsSystemUsingLightTheme
         {
@@ -163,16 +131,7 @@ namespace Dopamine.Services.WindowsIntegration
             }
         }
 
-        public void StartMonitoringTabletMode()
-        {
-            this.isMonitoringTabletMode = true;
-            this.lastTabletMode = this.IsTabletModeEnabled;
-        }
 
-        public void StopMonitoringTabletMode()
-        {
-            this.isMonitoringTabletMode = false;
-        }
 
         public void StartMonitoringSystemUsesLightTheme()
         {

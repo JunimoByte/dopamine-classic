@@ -1,4 +1,4 @@
-﻿using CommonServiceLocator;
+using CommonServiceLocator;
 using Digimezzo.Foundation.Core.IO;
 using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Settings;
@@ -36,7 +36,7 @@ using Dopamine.Services.Search;
 using Dopamine.Services.Shell;
 using Dopamine.Services.Statistics;
 using Dopamine.Services.Taskbar;
-using Dopamine.Services.Win32Input;
+
 using Dopamine.Services.WindowsIntegration;
 using Dopamine.Utils;
 using Dopamine.Views;
@@ -234,7 +234,7 @@ namespace Dopamine
                 containerRegistry.RegisterSingleton<IIndexingService, IndexingService>();
                 containerRegistry.RegisterSingleton<IStatisticsService, StatisticsService>();
                 containerRegistry.RegisterSingleton<IPlaybackService, PlaybackService>();
-                containerRegistry.RegisterSingleton<IWin32InputService, Win32InputService>();
+
                 containerRegistry.RegisterSingleton<ISearchService, SearchService>();
                 containerRegistry.RegisterSingleton<ITaskbarService, TaskbarService>();
                 containerRegistry.RegisterSingleton<ICollectionService, CollectionService>();

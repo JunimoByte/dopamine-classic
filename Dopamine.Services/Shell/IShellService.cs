@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 
 namespace Dopamine.Services.Shell
 {
@@ -16,9 +16,9 @@ namespace Dopamine.Services.Shell
     {
         WindowState WindowState { get; set; }
 
-        void CheckIfTabletMode(bool isInitializing);
 
         void SaveWindowLocation(double top, double left, WindowState state);
+        void InitializePlayerState();
 
         void SaveWindowState(WindowState state);
 

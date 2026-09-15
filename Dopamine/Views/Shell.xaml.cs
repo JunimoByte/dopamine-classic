@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.IO;
+using Digimezzo.Foundation.Core.IO;
 using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Settings;
 using Digimezzo.Foundation.Core.Utils;
@@ -14,7 +14,6 @@ using Dopamine.Services.Metadata;
 using Dopamine.Services.Notification;
 using Dopamine.Services.Playback;
 using Dopamine.Services.Shell;
-using Dopamine.Services.Win32Input;
 using Dopamine.Services.WindowsIntegration;
 using Dopamine.Views.Common;
 using Dopamine.Views.MiniPlayer;
@@ -36,7 +35,6 @@ namespace Dopamine.Views
         private IContainerProvider container;
         private IWindowsIntegrationService windowsIntegrationService;
         private INotificationService notificationService;
-        private IWin32InputService win32InputService;
         private IPlaybackService playbackService;
         private IMetadataService metadataService;
         private IAppearanceService appearanceService;
@@ -56,7 +54,7 @@ namespace Dopamine.Views
         public DelegateCommand ShowMainWindowCommand { get; set; }
 
         public Shell(IContainerProvider container, IWindowsIntegrationService windowsIntegrationService, II18nService i18nService,
-            INotificationService notificationService, IWin32InputService win32InputService, IAppearanceService appearanceService,
+            INotificationService notificationService, IAppearanceService appearanceService,
             IPlaybackService playbackService, IMetadataService metadataService, ILifetimeService lifetimeService,
             IEventAggregator eventAggregator)
         {
@@ -65,7 +63,6 @@ namespace Dopamine.Views
             this.container = container;
             this.windowsIntegrationService = windowsIntegrationService;
             this.notificationService = notificationService;
-            this.win32InputService = win32InputService;
             this.playbackService = playbackService;
             this.metadataService = metadataService;
             this.appearanceService = appearanceService;
@@ -206,9 +203,6 @@ namespace Dopamine.Views
 
         private void InitializeWindows()
         {
-            // Start monitoring tablet mode
-            this.windowsIntegrationService.StartMonitoringTabletMode();
-
             // Start monitoring system uses light theme
             this.windowsIntegrationService.StartMonitoringSystemUsesLightTheme();
 
@@ -263,7 +257,7 @@ namespace Dopamine.Views
                 }
             };
 
-            this.shellService.CheckIfTabletMode(true); // Make sure the window geometry respects tablet mode at startup
+            this.shellService.InitializePlayerState();
             this.SetWindowBorder();
         }
 
@@ -290,15 +284,7 @@ namespace Dopamine.Views
 
         private void InitializeServices()
         {
-            // IWin32InputService
-            this.win32InputService.SetKeyboardHook(new WindowInteropHelper(this).EnsureHandle()); // Listen to media keys
-
             // IWindowsIntegrationService
-            this.windowsIntegrationService.TabletModeChanged += (_, __) =>
-            {
-                Application.Current.Dispatcher.Invoke(() => this.shellService.CheckIfTabletMode(false));
-            };
-
             this.windowsIntegrationService.SystemUsesLightThemeChanged += (_, __) =>
             {
                 Application.Current.Dispatcher.Invoke(() => this.SetTrayIcon());
@@ -342,17 +328,14 @@ namespace Dopamine.Views
 
         private void Window_Closed(object sender, System.EventArgs e)
         {
-            // Stop monitoring tablet mode
-            this.windowsIntegrationService.StopMonitoringTabletMode();
-
             // Stop monitoring system uses light theme
             this.windowsIntegrationService.StopMonitoringSystemUsesLightTheme();
 
             // Make sure the Tray icon is removed from the tray
-            this.trayIcon.Visible = false;
-
-            // Stop listening to keyboard outside the application
-            this.win32InputService.UnhookKeyboard();
+            if (this.trayIcon != null)
+            {
+                this.trayIcon.Visible = false;
+            }
 
             // This makes sure the application doesn't keep running when the main window is closed.
             // Extra windows created by the main window can keep a WPF application running even when

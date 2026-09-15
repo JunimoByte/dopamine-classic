@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Settings;
+using Digimezzo.Foundation.Core.Settings;
 using Dopamine.Core.Base;
 using Dopamine.Core.Enums;
 using Dopamine.Core.Prism;
@@ -97,7 +97,7 @@ namespace Dopamine.Services.Shell
             this.TogglePlayerCommand = new DelegateCommand(() =>
             {
                 // If tablet mode is enabled, we should not be able to toggle the player.
-                if (!this.windowsIntegrationService.IsTabletModeEnabled)
+                if (true)
                 {
                     this.TogglePlayer();
                 }
@@ -178,7 +178,7 @@ namespace Dopamine.Services.Shell
             this.canSaveWindowGeometry = false;
 
             // Sets the geometry of the player
-            if (isMiniPlayer | (!this.windowsIntegrationService.IsTabletModeEnabled & this.windowsIntegrationService.IsStartedFromExplorer))
+            if (isMiniPlayer | (this.windowsIntegrationService.IsStartedFromExplorer))
             {
                 switch (miniPlayerType)
                 {
@@ -321,21 +321,12 @@ namespace Dopamine.Services.Shell
             }
         }
 
-        public void CheckIfTabletMode(bool isInitializing)
+        public void InitializePlayerState()
         {
-            if (this.windowsIntegrationService.IsTabletModeEnabled)
-            {
-                // Always revert to full player when tablet mode is enabled. Maximizing will be done by Windows.
-                this.SetPlayer(false, (MiniPlayerType)SettingsClient.Get<int>("General", "MiniPlayerType"), isInitializing);
-            }
-            else
-            {
-                bool isMiniPlayer = SettingsClient.Get<bool>("General", "IsMiniPlayer");
-                bool isMaximized = SettingsClient.Get<bool>("FullPlayer", "IsMaximized");
-                this.WindowStateChangeRequested(this, new WindowStateChangeRequestedEventArgs(isMaximized & !isMiniPlayer ? WindowState.Maximized : WindowState.Normal));
-
-                this.SetPlayer(isMiniPlayer, (MiniPlayerType)SettingsClient.Get<int>("General", "MiniPlayerType"), isInitializing);
-            }
+            bool isMiniPlayer = SettingsClient.Get<bool>("General", "IsMiniPlayer");
+            bool isMaximized = SettingsClient.Get<bool>("FullPlayer", "IsMaximized");
+            this.WindowStateChangeRequested(this, new WindowStateChangeRequestedEventArgs(isMaximized & !isMiniPlayer ? WindowState.Maximized : WindowState.Normal));
+            this.SetPlayer(isMiniPlayer, (MiniPlayerType)SettingsClient.Get<int>("General", "MiniPlayerType"), true);
         }
 
         public void SaveWindowLocation(double top, double left, WindowState state)
@@ -415,7 +406,7 @@ namespace Dopamine.Services.Shell
 
             // Only save window state when not in tablet mode. Tablet mode maximizes the screen. 
             // We don't want to save that, as we want to be able to restore to the original state when leaving tablet mode.
-            if (this.canSaveWindowGeometry & !this.windowsIntegrationService.IsTabletModeEnabled)
+            if (this.canSaveWindowGeometry & true)
             {
                 SettingsClient.Set<bool>("FullPlayer", "IsMaximized", state == WindowState.Maximized ? true : false);
             }
