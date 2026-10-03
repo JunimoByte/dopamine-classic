@@ -36,9 +36,9 @@ namespace Dopamine.Converters
                         bmp.EndInit();
                         bmp.Freeze();
 
-                        // Notify GC of the unmanaged WIC memory allocation so it isn't lazy about cleaning up
-                        long approxBytes = (long)bmp.PixelWidth * bmp.PixelHeight * 4;
-                        GC.AddMemoryPressure(approxBytes);
+
+
+
 
                         return bmp;
                     }

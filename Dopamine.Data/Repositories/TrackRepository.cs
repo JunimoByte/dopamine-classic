@@ -19,6 +19,47 @@ namespace Dopamine.Data.Repositories
             this.factory = factory;
         }
 
+        private class StringColumnResult
+        {
+            public string Value { get; set; }
+        }
+
+        private string SelectDistinctColumnQuery(string columnName)
+        {
+            return $@"SELECT DISTINCT t.{columnName} AS Value 
+                      FROM Track t
+                      INNER JOIN FolderTrack ft ON ft.TrackID = t.TrackID
+                      INNER JOIN Folder f ON ft.FolderID = f.FolderID
+                      WHERE f.ShowInCollection = 1 AND t.IndexingSuccess = 1 AND t.NeedsIndexing = 0 AND t.{columnName} IS NOT NULL AND t.{columnName} != '';";
+        }
+
+        private static void DeduplicateTrackStrings(IList<Track> tracks)
+        {
+            if (tracks == null || tracks.Count == 0) return;
+
+            var pool = new Dictionary<string, string>(StringComparer.Ordinal);
+
+            string Deduplicate(string s)
+            {
+                if (s == null) return null;
+                if (pool.TryGetValue(s, out string existing)) return existing;
+                pool[s] = s;
+                return s;
+            }
+
+            for (int i = 0; i < tracks.Count; i++)
+            {
+                Track t = tracks[i];
+                if (t == null) continue;
+                t.Artists = Deduplicate(t.Artists);
+                t.Genres = Deduplicate(t.Genres);
+                t.AlbumTitle = Deduplicate(t.AlbumTitle);
+                t.AlbumArtists = Deduplicate(t.AlbumArtists);
+                t.AlbumKey = Deduplicate(t.AlbumKey);
+                t.MimeType = Deduplicate(t.MimeType);
+            }
+        }
+
         private string SelectVisibleTracksQuery()
         {
             return @"SELECT DISTINCT t.TrackID, t.Artists, t.Genres, t.AlbumTitle, t.AlbumArtists, t.AlbumKey,
@@ -92,6 +133,7 @@ namespace Dopamine.Data.Repositories
                 }
             });
 
+            DeduplicateTrackStrings(tracks);
             return tracks;
         }
 
@@ -121,6 +163,7 @@ namespace Dopamine.Data.Repositories
                 }
             });
 
+            DeduplicateTrackStrings(tracks);
             return tracks;
         }
 
@@ -151,6 +194,7 @@ namespace Dopamine.Data.Repositories
                 }
             });
 
+            DeduplicateTrackStrings(tracks);
             return tracks;
         }
 
@@ -187,6 +231,7 @@ namespace Dopamine.Data.Repositories
                 }
             });
 
+            DeduplicateTrackStrings(tracks);
             return tracks;
         }
 
@@ -217,6 +262,7 @@ namespace Dopamine.Data.Repositories
                 }
             });
 
+            DeduplicateTrackStrings(tracks);
             return tracks;
         }
 
@@ -253,6 +299,7 @@ namespace Dopamine.Data.Repositories
                 }
             });
 
+            DeduplicateTrackStrings(tracks);
             return tracks;
         }
 
@@ -448,8 +495,8 @@ namespace Dopamine.Data.Repositories
                     {
                         try
                         {
-                            genreNames = conn.Query<Track>(this.SelectVisibleTracksQuery()).ToList()
-                                                           .Select((t) => t.Genres)
+                            genreNames = conn.Query<StringColumnResult>(this.SelectDistinctColumnQuery("Genres")).ToList()
+                                                           .Select((r) => r.Value)
                                                            .SelectMany(g => DataUtils.SplitColumnMultiValue(g))
                                                            .Distinct().ToList();
                         }
@@ -480,8 +527,8 @@ namespace Dopamine.Data.Repositories
                     {
                         try
                         {
-                            artistNames = conn.Query<Track>(this.SelectVisibleTracksQuery()).ToList()
-                                                            .Select((t) => t.Artists)
+                            artistNames = conn.Query<StringColumnResult>(this.SelectDistinctColumnQuery("Artists")).ToList()
+                                                            .Select((r) => r.Value)
                                                             .SelectMany(a => DataUtils.SplitColumnMultiValue(a))
                                                             .Distinct().ToList();
                         }
@@ -512,8 +559,8 @@ namespace Dopamine.Data.Repositories
                     {
                         try
                         {
-                            artistNames = conn.Query<Track>(this.SelectVisibleTracksQuery()).ToList()
-                                                            .Select((t) => t.AlbumArtists)
+                            artistNames = conn.Query<StringColumnResult>(this.SelectDistinctColumnQuery("AlbumArtists")).ToList()
+                                                            .Select((r) => r.Value)
                                                             .SelectMany(a => DataUtils.SplitColumnMultiValue(a))
                                                             .Distinct().ToList();
                         }

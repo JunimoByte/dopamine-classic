@@ -260,6 +260,7 @@ namespace Dopamine.Controls
             };
 
             this.animationTimer.Tick += animationTimer_Tick;
+            this.IsVisibleChanged += SpectrumAnalyzer_IsVisibleChanged;
         }
 
         public override void OnApplyTemplate()
@@ -296,7 +297,10 @@ namespace Dopamine.Controls
             this.soundPlayer = soundPlayer;
             this.soundPlayer.PropertyChanged += soundPlayer_PropertyChanged;
             this.UpdateBarLayout();
-            this.animationTimer.Start();
+            if (this.IsVisible && this.soundPlayer.IsPlaying)
+            {
+                this.animationTimer.Start();
+            }
         }
 
         public void UnregisterSoundPlayer()
@@ -504,7 +508,7 @@ namespace Dopamine.Controls
             switch (e.PropertyName)
             {
                 case "IsPlaying":
-                    if (this.soundPlayer.IsPlaying && !this.animationTimer.IsEnabled)
+                    if (this.soundPlayer.IsPlaying && !this.animationTimer.IsEnabled && this.IsVisible)
                     {
                         this.animationTimer.Start();
                     }
@@ -514,7 +518,31 @@ namespace Dopamine.Controls
 
         private void animationTimer_Tick(object sender, EventArgs e)
         {
+            if (!this.IsVisible)
+            {
+                this.animationTimer.Stop();
+                return;
+            }
+
             this.UpdateSpectrum();
+        }
+
+        private void SpectrumAnalyzer_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (this.IsVisible)
+            {
+                if (this.soundPlayer != null && this.soundPlayer.IsPlaying && !this.animationTimer.IsEnabled)
+                {
+                    this.animationTimer.Start();
+                }
+            }
+            else
+            {
+                if (this.animationTimer.IsEnabled)
+                {
+                    this.animationTimer.Stop();
+                }
+            }
         }
 
         private void spectrumCanvas_SizeChanged(object sender, SizeChangedEventArgs e)

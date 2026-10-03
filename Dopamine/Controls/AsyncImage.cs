@@ -50,8 +50,8 @@ namespace Dopamine.Controls
                             bitmap.EndInit();
                             bitmap.Freeze();
                             
-                            long approxBytes = (long)bitmap.PixelWidth * bitmap.PixelHeight * 4;
-                            GC.AddMemoryPressure(approxBytes);
+
+
                             
                             return bitmap;
                         }
