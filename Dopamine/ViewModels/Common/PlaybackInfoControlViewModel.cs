@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Settings;
 using Digimezzo.Foundation.WPF.Controls;
 using Dopamine.Core.Utils;
@@ -9,7 +9,6 @@ using Dopamine.Services.Scrobbling;
 using Prism.Mvvm;
 using System;
 using System.Threading.Tasks;
-using System.Timers;
 
 namespace Dopamine.ViewModels.Common
 {
@@ -22,8 +21,6 @@ namespace Dopamine.ViewModels.Common
         private SlideDirection slideDirection;
         private TrackViewModel previousTrack;
         private TrackViewModel track;
-        private Timer refreshTimer = new Timer();
-        private int refreshTimerIntervalMilliseconds = 250;
         private bool enableRating;
         private bool enableLove;
 
@@ -97,14 +94,10 @@ namespace Dopamine.ViewModels.Common
             this.metadataService = metadataService;
             this.scrobblingService = scrobblingService;
 
-            this.refreshTimer.Interval = this.refreshTimerIntervalMilliseconds;
-            this.refreshTimer.Elapsed += RefreshTimer_Elapsed;
-
             this.playbackService.PlaybackSuccess += (_, e) =>
             {
                 this.SlideDirection = e.IsPlayingPreviousTrack ? SlideDirection.UpToDown : SlideDirection.DownToUp;
-                this.refreshTimer.Stop();
-                this.refreshTimer.Start();
+                this.RefreshPlaybackInfoAsync(this.playbackService.CurrentTrack, false);
             };
 
             this.playbackService.PlaybackProgressChanged += (_, __) => this.UpdateTime();
@@ -150,11 +143,7 @@ namespace Dopamine.ViewModels.Common
             this.EnableLove = SettingsClient.Get<bool>("Behaviour", "EnableLove");
         }
 
-        private void RefreshTimer_Elapsed(object sender, ElapsedEventArgs e)
-        {
-            this.refreshTimer.Stop();
-            this.RefreshPlaybackInfoAsync(this.playbackService.CurrentTrack, false);
-        }
+
 
         private void ClearPlaybackInfo()
         {

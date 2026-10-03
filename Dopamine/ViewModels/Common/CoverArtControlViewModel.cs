@@ -8,7 +8,6 @@ using Dopamine.Services.Playback;
 using Prism.Mvvm;
 using System;
 using System.Threading.Tasks;
-using System.Timers;
 using Dopamine.Services.Entities;
 
 namespace Dopamine.ViewModels.Common
@@ -60,10 +59,7 @@ namespace Dopamine.ViewModels.Common
             this.RefreshCoverArtAsync(this.playbackService.CurrentTrack);
         }
 
-        private void RefreshTimer_Elapsed(object sender, ElapsedEventArgs e)
-        {
-            this.RefreshCoverArtAsync(this.playbackService.CurrentTrack);
-        }
+
 
         protected async virtual void RefreshCoverArtAsync(TrackViewModel track)
         {
