@@ -19,7 +19,7 @@ namespace Dopamine.ViewModels.Common
         private ICacheService cacheService;
         private IMetadataService metadataService;
         private SlideDirection slideDirection;
-        private byte[] previousArtwork;
+        private long? previousArtworkLength;
         private byte[] artwork;
 
         public CoverArtViewModel CoverArtViewModel
@@ -38,6 +38,7 @@ namespace Dopamine.ViewModels.Common
         {
             this.CoverArtViewModel = new CoverArtViewModel { CoverArt = null };
             this.artwork = null;
+            this.previousArtworkLength = null;
         }
 
         public CoverArtControlViewModel(IPlaybackService playbackService, ICacheService cacheService, IMetadataService metadataService)
@@ -65,8 +66,6 @@ namespace Dopamine.ViewModels.Common
         {
             await Task.Run(async () =>
             {
-                this.previousArtwork = this.artwork;
-
                 // No track selected: clear cover art.
                 if (track == null)
                 {
@@ -74,12 +73,12 @@ namespace Dopamine.ViewModels.Common
                     return;
                 }
 
-                // Try to find artwork
+                // Try to find artwork (cap to 500px to avoid allocating massive unmanaged bitmaps in memory)
                 byte[] artwork = null;
 
                 try
                 {
-                    artwork = await this.metadataService.GetArtworkAsync(track.Path);
+                    artwork = await this.metadataService.GetArtworkAsync(track.Path, 500);
                 }
                 catch (Exception ex)
                 {
@@ -87,16 +86,19 @@ namespace Dopamine.ViewModels.Common
                 }
 
                 this.artwork = artwork;
+                long? currentLength = this.artwork != null ? (long?)this.artwork.LongLength : null;
 
                 // Verify if the artwork changed
-                if ((this.artwork != null & this.previousArtwork != null) && (this.artwork.LongLength == this.previousArtwork.LongLength))
+                if (currentLength.HasValue && this.previousArtworkLength.HasValue && currentLength.Value == this.previousArtworkLength.Value)
                 {
                     return;
                 }
-                else if (this.artwork == null & this.previousArtwork == null & this.CoverArtViewModel != null)
+                else if (!currentLength.HasValue && !this.previousArtworkLength.HasValue && this.CoverArtViewModel != null)
                 {
                     return;
                 }
+
+                this.previousArtworkLength = currentLength;
 
                 if (artwork != null)
                 {

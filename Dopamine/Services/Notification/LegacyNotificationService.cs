@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Settings;
 using Digimezzo.Foundation.WPF.Controls;
 using Dopamine.Core.Base;
@@ -190,7 +190,7 @@ namespace Dopamine.Services.Notification
 
                 if (this.playbackService.HasCurrentTrack)
                 {
-                    artworkData = await this.metadataService.GetArtworkAsync(this.playbackService.CurrentTrack.Path);
+                    artworkData = await this.metadataService.GetArtworkAsync(this.playbackService.CurrentTrack.Path, 300);
                 }
 
                 Application.Current.Dispatcher.Invoke(() =>

@@ -7,6 +7,7 @@ using Dopamine.Core.Base;
 using Dopamine.Core.Extensions;
 using Dopamine.Core.IO;
 using Dopamine.Core.Prism;
+using Dopamine.Core.Utils;
 using Dopamine.Services.Appearance;
 using Dopamine.Services.I18n;
 using Dopamine.Services.Lifetime;
@@ -408,6 +409,9 @@ namespace Dopamine.Views
                         LogClient.Error("Could not hide main window from ALT-TAB menu. Exception: {0}", ex.Message);
                     }
                 }
+
+                // Asynchronously trim working set and compact LOH when minimized/in tray
+                MemoryUtils.TrimWorkingSet();
             }
             else
             {

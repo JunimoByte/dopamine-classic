@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Helpers;
+using Digimezzo.Foundation.Core.Helpers;
 using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Settings;
 using Digimezzo.Foundation.Core.Utils;
@@ -331,7 +331,7 @@ namespace Dopamine.Services.Appearance
                 }
                 else if (followAlbumCoverColor)
                 {
-                    byte[] artwork = await this.metadataService.GetArtworkAsync(this.playbackService.CurrentTrack.Path);
+                    byte[] artwork = await this.metadataService.GetArtworkAsync(this.playbackService.CurrentTrack.Path, 150);
 
                     if (artwork?.Length > 0)
                     {
