@@ -473,6 +473,16 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
             SettingsClient.Set<int>("CoverSizes", "ArtistsCoverSize", (int)coverSize);
         }
 
+        protected async override Task LoadedCommandAsync()
+        {
+            await Task.Delay(50);
+
+            if (this.Artists == null)
+            {
+                await this.FillListsAsync();
+            }
+        }
+
         protected async override Task FillListsAsync()
         {
             await Task.WhenAll(

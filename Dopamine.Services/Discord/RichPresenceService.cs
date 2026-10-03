@@ -1,4 +1,4 @@
-﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Logging;
 using Digimezzo.Foundation.Core.Settings;
 using Digimezzo.Foundation.Core.Utils;
 using DiscordRPC;
@@ -8,7 +8,7 @@ using System;
 
 namespace Dopamine.Services.Discord
 {
-    public class RichPresenceService : IRichPresenceService
+    public class RichPresenceService : IRichPresenceService, IDisposable
     {
         private DiscordRpcClient client;
         private IPlaybackService playbackService;
@@ -63,7 +63,7 @@ namespace Dopamine.Services.Discord
             }
             catch (Exception ex)
             {
-                LogClient.Error($"Could not register cliente. Exception: {ex.Message}");
+                LogClient.Error($"Could not register client. Exception: {ex.Message}");
             }
         }
 
@@ -81,7 +81,7 @@ namespace Dopamine.Services.Discord
                 this.playbackService.PlaybackSuccess -= this.HandleDetailsChanged;
                 this.playbackService.PlaybackStopped -= this.HandleStop;
 
-                this.client.ClearPresence();
+                this.client?.ClearPresence();
             }
             catch (Exception ex)
             {
@@ -96,7 +96,7 @@ namespace Dopamine.Services.Discord
         {
             try
             {
-                if (this.playbackService.CurrentTrack == null)
+                if (this.client == null || this.playbackService.CurrentTrack == null)
                 {
                     return;
                 }
@@ -137,7 +137,7 @@ namespace Dopamine.Services.Discord
                 }
 
 
-                this.client.SetPresence(presence);
+                this.client?.SetPresence(presence);
             }
             catch (Exception ex)
             {
@@ -163,7 +163,7 @@ namespace Dopamine.Services.Discord
         {
             try
             {
-                this.client.ClearPresence();
+                this.client?.ClearPresence();
             }
             catch (Exception ex)
             {
@@ -171,12 +171,36 @@ namespace Dopamine.Services.Discord
             }
         }
 
+        public void Dispose()
+        {
+            try
+            {
+                this.client?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                LogClient.Error($"Could not dispose Discord client. Exception: {ex.Message}");
+            }
+            finally
+            {
+                this.client = null;
+                GC.SuppressFinalize(this);
+            }
+        }
+
         /// <summary>
-        /// Dispose of the Discord client.
+        /// Finalizer for safety. Must never allow exceptions to escape to prevent crashing the CLR process.
         /// </summary>
         ~RichPresenceService()
         {
-            this.client.Dispose();
+            try
+            {
+                this.client?.Dispose();
+            }
+            catch
+            {
+                // Finalizers must NEVER throw unhandled exceptions or the process terminates
+            }
         }
     }
 }

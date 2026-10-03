@@ -269,12 +269,23 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
             }
         }
 
+        protected async override Task LoadedCommandAsync()
+        {
+            await Task.Delay(50);
+
+            if (this.Playlists == null)
+            {
+                await this.FillListsAsync();
+            }
+        }
+
         protected override async Task FillListsAsync()
         {
-            await Task.WhenAll(
-                this.GetPlaylistsAsync(),
-                this.GetTracksAsync()
-            );
+            await this.GetPlaylistsAsync();
+            if (this.SelectedPlaylist != null)
+            {
+                await this.GetTracksAsync();
+            }
         }
 
         protected async override Task EmptyListsAsync()

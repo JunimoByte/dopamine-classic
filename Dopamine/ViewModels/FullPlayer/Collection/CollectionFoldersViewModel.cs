@@ -121,7 +121,11 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
 
         private async Task GetFoldersAsync()
         {
-            this.Folders = new ObservableCollection<FolderViewModel>(await this.foldersService.GetFoldersAsync());
+            IList<FolderViewModel> folderList = await this.foldersService.GetFoldersAsync();
+            this.Folders = folderList != null
+                ? new ObservableCollection<FolderViewModel>(folderList)
+                : new ObservableCollection<FolderViewModel>();
+
             FolderViewModel proposedSelectedFolder = await this.foldersService.GetSelectedFolderAsync();
             this.selectedFolder = proposedSelectedFolder != null
                 ? this.Folders.FirstOrDefault(x => x.Equals(proposedSelectedFolder))
@@ -151,12 +155,20 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
             await this.GetTracksCommonAsync(tracks, TrackOrder.None);
         }
 
+        protected async override Task LoadedCommandAsync()
+        {
+            await Task.Delay(50);
+
+            if (this.Folders == null)
+            {
+                await this.FillListsAsync();
+            }
+        }
+
         protected async override Task FillListsAsync()
         {
-            await Task.WhenAll(
-                this.GetFoldersAsync(),
-                this.GetSubfoldersAsync(null)
-            );
+            await this.GetFoldersAsync();
+            await this.GetSubfoldersAsync(null);
         }
 
         protected async override Task EmptyListsAsync()

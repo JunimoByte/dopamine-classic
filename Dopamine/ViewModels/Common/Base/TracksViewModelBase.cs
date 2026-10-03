@@ -556,7 +556,7 @@ namespace Dopamine.ViewModels.Common.Base
 
             // Only load if lists are empty (first visit or after a collection change).
             // Subsequent tab switches are instant — data stays in memory.
-            if (this.TracksCount == 0)
+            if (this.Tracks == null)
                 await this.FillListsAsync();
         }
 
