@@ -571,8 +571,19 @@ namespace Dopamine.Services.Playback
             {
                 if (this.Queue != null && this.Queue.Count > 0)
                 {
-                    // There are already tracks enqueued. Start playing immediately.
-                    await this.PlayFirstAsync();
+                    // There are already tracks enqueued. Start playing current track if available, otherwise first track.
+                    TrackViewModel trackToPlay = this.CurrentTrack ?? this.queueManager.FirstTrack();
+                    if (trackToPlay != null)
+                    {
+                        if (await this.blacklistService.IsInBlacklistAsync(trackToPlay))
+                        {
+                            await this.TryPlayNextAsync(false);
+                        }
+                        else
+                        {
+                            await this.TryPlayAsync(trackToPlay);
+                        }
+                    }
                 }
                 else
                 {

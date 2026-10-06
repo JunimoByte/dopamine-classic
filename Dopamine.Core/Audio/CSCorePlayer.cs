@@ -1,4 +1,5 @@
 using CSCore;
+using Digimezzo.Foundation.Core.Logging;
 using CSCore.CoreAudioAPI;
 using CSCore.DSP;
 using CSCore.Ffmpeg;
@@ -234,8 +235,13 @@ namespace Dopamine.Core.Audio
             {
                 try
                 {
-                    this.currentTimeBeforePause = this.soundOut.WaveSource.GetPosition();
-                    this.totalTimeBeforePause = this.soundOut.WaveSource.GetLength();
+                    this.currentTimeBeforePause = this.GetCurrentTime();
+                    if (this.currentTimeBeforePause < TimeSpan.Zero)
+                    {
+                        this.currentTimeBeforePause = TimeSpan.Zero;
+                    }
+
+                    this.totalTimeBeforePause = this.GetTotalTime();
                     this.isStoppedBecausePaused = true;
 
                     this.soundOut.Stop();
@@ -246,10 +252,13 @@ namespace Dopamine.Core.Audio
                     this.canPause = false;
                     this.canStop = true;
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    this.Stop();
-                    throw;
+                    LogClient.Error("Error while pausing audio playback: {0}", ex.Message);
+                    this.IsPlaying = false;
+                    this.canPlay = true;
+                    this.canPause = false;
+                    this.canStop = true;
                 }
             }
         }
@@ -262,7 +271,18 @@ namespace Dopamine.Core.Audio
                 {
                     this.isStoppedBecausePaused = false;
                     this.soundOut.Play();
-                    this.soundOut.WaveSource.SetPosition(this.currentTimeBeforePause);
+
+                    if (this.currentTimeBeforePause > TimeSpan.Zero)
+                    {
+                        try
+                        {
+                            this.soundOut.WaveSource.SetPosition(this.currentTimeBeforePause);
+                        }
+                        catch (Exception ex)
+                        {
+                            LogClient.Warning("Could not restore position on resume: {0}", ex.Message);
+                        }
+                    }
 
                     this.IsPlaying = true;
 
@@ -271,8 +291,9 @@ namespace Dopamine.Core.Audio
                     this.canStop = true;
                     return true;
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    LogClient.Error("Error while resuming audio playback: {0}", ex.Message);
                     this.Stop();
                     throw;
                 }
@@ -387,9 +408,8 @@ namespace Dopamine.Core.Audio
 
                 if (this.isStoppedBecausePaused)
                 {
-                    this.currentTimeBeforePause = this.soundOut.WaveSource.GetPosition();
-                    this.totalTimeBeforePause = this.soundOut.WaveSource.GetLength();
-
+                    this.currentTimeBeforePause = this.GetCurrentTime();
+                    this.totalTimeBeforePause = this.GetTotalTime();
                 }
             }
             catch (Exception)
@@ -689,7 +709,7 @@ namespace Dopamine.Core.Audio
 
         public void SoundOutStoppedHandler(object sender, PlaybackStoppedEventArgs e)
         {
-            if (this.isStoppedBecausePaused)
+            if (this.isStoppedBecausePaused || !this.canPause)
             {
                 return;
             }
@@ -705,6 +725,16 @@ namespace Dopamine.Core.Audio
                 }
                 else
                 {
+                    // Verify that the track actually reached the end before firing PlaybackFinished.
+                    // If the user paused, stopped, or if audio was stopped early, do not fire PlaybackFinished.
+                    TimeSpan current = this.GetCurrentTime();
+                    TimeSpan total = this.GetTotalTime();
+
+                    if (total > TimeSpan.Zero && current < total - TimeSpan.FromSeconds(2))
+                    {
+                        return;
+                    }
+
                     if (PlaybackFinished != null)
                     {
                         this.PlaybackFinished(this, new EventArgs());
